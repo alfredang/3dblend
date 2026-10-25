@@ -45,6 +45,7 @@ export async function POST(req: Request) {
   });
   if (!project) return new Response("Not found", { status: 404 });
   const isPublicByPlan = defaultVisibility(project.user.plan);
+  const lineage = await prisma.model.findFirst({ where: { projectId, remixOfId: { not: null } }, orderBy: { createdAt: "desc" }, select: { remixOfId: true, attribution: true } });
   if (attachment && !canAttach(project.user.plan)) {
     return new Response(JSON.stringify({ error: "Reference images and PDFs are available on Starter and Pro. Upgrade to attach files." }), { status: 403, headers: { "content-type": "application/json" } });
   }
@@ -140,6 +141,8 @@ export async function POST(req: Request) {
               blenderPath: "pending",
               version,
               isPublic: isPublicByPlan,
+              remixOfId: lineage?.remixOfId ?? null,
+              attribution: lineage?.attribution ?? null,
             },
           });
           const stlPath = await saveFile(`models/${model.id}.stl`, result.stl);

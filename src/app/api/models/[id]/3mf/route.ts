@@ -21,7 +21,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (await fileExists(rel)) data = await readFile(rel);
   else {
     const mesh = parseBinarySTL(await readFile(model.stlPath));
-    data = toThreeMF(mesh, model.title, { author: model.user.name ?? "3DBlend", description: model.description });
+    data = toThreeMF(mesh, model.title, {
+      author: model.user.name ?? "3DBlend",
+      description: model.attribution ? `${model.description} Remix of ${model.attribution} (CC BY 4.0).` : model.description,
+    });
     await saveFile(rel, data);
   }
   const download = new URL(req.url).searchParams.get("download") === "1";

@@ -18,6 +18,7 @@ export interface ModelCardData {
   size?: [number, number, number];
   author?: string | null;
   createdAt?: string;
+  attribution?: string;
 }
 
 export function ModelCard({ model }: { model: ModelCardData }) {
@@ -56,7 +57,7 @@ export function ModelCard({ model }: { model: ModelCardData }) {
           <LikeButton modelId={model.id} initialCount={model.likesCount} initialLiked={model.liked} compact />
         </div>
         <div className="mt-3 flex items-center justify-between text-[11px] text-muted">
-          <span className="truncate">{model.author ? `by ${model.author}` : ""}</span>
+          <span className="truncate">{model.author ? `by ${model.author}` : ""}{model.attribution ? ` · remix of ${model.attribution}` : ""}</span>
           <span className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{formatNumber(model.views)}</span>
             <span className="inline-flex items-center gap-1"><Download className="h-3 w-3" />{formatNumber(model.downloads)}</span>

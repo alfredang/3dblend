@@ -28,7 +28,7 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
     imageUrl: m.imagePath ? `/api/messages/${m.id}/image` : undefined, attachmentName: m.attachmentName ?? undefined,
   }));
   const models: StudioModel[] = project.models.map((m) => ({
-    id: m.id, title: m.title, description: m.description, version: m.version, isPublic: m.isPublic, likesCount: m.likesCount, stats: m.stats as StudioModel["stats"], createdAt: m.createdAt.toISOString(),
+    id: m.id, title: m.title, description: m.description, version: m.version, isPublic: m.isPublic, likesCount: m.likesCount, stats: m.stats as StudioModel["stats"], createdAt: m.createdAt.toISOString(), attribution: m.attribution ?? undefined,
   }));
 
   return (

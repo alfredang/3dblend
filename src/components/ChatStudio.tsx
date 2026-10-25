@@ -39,7 +39,7 @@ async function prepareAttachment(file: File): Promise<Attachment> {
   }
 }
 export interface StudioModel {
-  id: string; title: string; description: string; version: number; isPublic: boolean; likesCount: number; createdAt: string;
+  id: string; title: string; description: string; version: number; isPublic: boolean; likesCount: number; createdAt: string; attribution?: string;
   stats: { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; errors?: string[]; tips?: string[]; ok?: boolean; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; meanThicknessMm?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string }; attempts?: number };
 }
 
@@ -318,6 +318,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                   {s.minWallMm !== undefined && <span>min wall <b className="text-fg">{s.minWallMm} mm</b></span>}
                   {s.recommendedLayerHeight !== undefined && <span>layer <b className="text-fg">{s.recommendedLayerHeight} mm</b></span>}
                   {s.printer && <span className="text-muted">{s.printer.name} · {s.printer.nozzle} mm · {s.printer.material}</span>}
+                  {current.attribution && <span className="text-accent-2">↻ remix of {current.attribution} (CC BY 4.0)</span>}
                   <span
                     className={cn("inline-flex items-center gap-1", s.ok === false ? "text-accent-3" : "text-accent-2")}
                     title={s.ok === false ? `Printability checks failed:\n${(s.errors ?? []).join("\n")}` : "Watertight mesh, passed all printability checks"}

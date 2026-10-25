@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Download, FileCode2, Printer, Ruler, Weight, Clock, Layers, Sparkles } from "lucide-react";
+import { Download, FileCode2, Printer, Ruler, Weight, Clock, Layers, Sparkles, GitFork } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ModelViewer } from "@/components/ModelViewer";
@@ -27,7 +27,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
   const session = await auth();
   const model = await prisma.model.findUnique({
     where: { id },
-    include: { user: { select: { name: true, id: true } }, likes: session?.user?.id ? { where: { userId: session.user.id } } : false, project: { select: { id: true } } },
+    include: { user: { select: { name: true, id: true } }, likes: session?.user?.id ? { where: { userId: session.user.id } } : false, project: { select: { id: true } }, remixOf: { select: { id: true, title: true, isPublic: true, user: { select: { name: true } } } } },
   });
   if (!model) notFound();
   const isOwner = session?.user?.id === model.userId;
@@ -57,6 +57,12 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
             <h1 className="mt-2 text-3xl font-semibold">{model.title}</h1>
             <p className="mt-2 text-muted">{model.description}</p>
             <p className="mt-3 text-sm text-muted">by <span className="text-fg">{model.user.name ?? "anonymous"}</span> · {model.createdAt.toLocaleDateString("en", { month: "short", day: "numeric", year: "numeric" })}</p>
+            {model.attribution && (
+              <p className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-line bg-elev px-3 py-1 text-xs text-muted">
+                <GitFork className="h-3.5 w-3.5 text-accent-2" />
+                Remix of {model.remixOf?.isPublic ? <Link href={`/m/${model.remixOf.id}`} className="text-accent hover:underline">{model.remixOf.title}</Link> : <span className="text-fg">{model.attribution.split(" by ")[0]}</span>} by <span className="text-fg">{model.remixOf?.user.name ?? model.attribution.split(" by ").slice(1).join(" by ")}</span> · CC BY 4.0
+              </p>
+            )}
           </div>
 
           <div className="card grid grid-cols-2 gap-3 p-4 text-sm">

@@ -21,7 +21,7 @@ export async function listPublicModels(opts: { sort?: "trending" | "new" | "top"
 }
 
 export function toCard(m: {
-  id: string; title: string; description: string; likesCount: number; downloads: number; views: number; featured: boolean; stats: unknown; createdAt: Date;
+  id: string; title: string; description: string; likesCount: number; downloads: number; views: number; featured: boolean; stats: unknown; createdAt: Date; attribution?: string | null;
   user?: { name: string | null } | null; likes?: { userId: string }[] | false;
 }): ModelCardData {
   const stats = (m.stats ?? {}) as Stats;
@@ -37,5 +37,6 @@ export function toCard(m: {
     author: m.user?.name ?? null,
     liked: Array.isArray(m.likes) ? m.likes.length > 0 : false,
     createdAt: m.createdAt.toISOString(),
+    attribution: m.attribution ?? undefined,
   };
 }

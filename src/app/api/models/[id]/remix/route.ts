@@ -8,7 +8,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const source = await prisma.model.findUnique({ where: { id } });
+  const source = await prisma.model.findUnique({ where: { id }, include: { user: { select: { name: true } } } });
   if (!source || (!source.isPublic && source.userId !== session.user.id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const me = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id }, select: { plan: true } });
@@ -26,12 +26,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       blenderPath: source.blenderPath,
       version: 1,
       isPublic: defaultVisibility(me.plan),
+      // Attribution: point at the root original if the source is itself a remix.
+      remixOfId: source.remixOfId ?? source.id,
+      attribution: source.attribution ?? `${source.title} by ${source.user.name ?? "anonymous"}`,
     },
   });
   await prisma.message.createMany({
     data: [
       { projectId: project.id, role: "user", content: source.prompt },
-      { projectId: project.id, role: "assistant", content: `Remixed **${source.title}** from the gallery. Tell me what you'd like to change.`, modelId: copy.id },
+      { projectId: project.id, role: "assistant", content: `Remixed **${source.title}** by ${source.user.name ?? "anonymous"} from the gallery (CC BY 4.0 — attribution is kept on every version). Tell me what you'd like to change.`, modelId: copy.id },
     ],
   });
   return NextResponse.json({ projectId: project.id });
