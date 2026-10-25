@@ -44,7 +44,7 @@ export default async function PricingPage() {
       <div className="card mt-14 grid gap-6 p-8 md:grid-cols-3">
         {[
           ["What is a credit?", "Each time the agent designs or modifies a model you spend one credit — regardless of how many repair iterations the harness needs internally."],
-          ["Who owns the models?", "You do. Download the STL and Blender script and use them commercially on Pro. Gallery models are shared under CC BY 4.0."],
+          ["Who owns the models, and are they private?", "You own them. Free-plan models are shared publicly in the gallery; Starter and Pro models stay private unless you publish them. Pro adds a commercial licence. Gallery models are shared under CC BY 4.0."],
           ["Can I cancel?", "Any time. You keep your remaining credits until the end of the billing cycle, then drop back to the free tier."],
         ].map(([q, a]) => (
           <div key={q}><h3 className="font-medium">{q}</h3><p className="mt-2 text-sm text-muted">{a}</p></div>

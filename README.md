@@ -27,6 +27,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
 - **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, Stripe subscription checkout + webhook (optional), monthly top‑up cron endpoint.
+- **Visibility by plan** — Free‑plan models are always public in the gallery; Starter and Pro models are private until the owner publishes them (`defaultVisibility` / `canMakePrivate` in `src/lib/plans.ts`).
 - **Admin dashboard** — `/admin` for users flagged `isAdmin`: totals, users (plan, credits top‑ups, grant/revoke admin) and models (feature, publish, delete).
 - **Sample content** — six featured models (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
 

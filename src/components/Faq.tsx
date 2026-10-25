@@ -10,6 +10,10 @@ const FAQ: { q: string; a: string }[] = [
     a: `Free gives ${PLANS.FREE.credits} credits once. Starter gives ${PLANS.STARTER.credits} credits a month and Pro ${PLANS.PRO.credits} credits a month, resetting each billing cycle. Unused monthly credits do not roll over.`,
   },
   {
+    q: "Are my models private?",
+    a: "On the Free plan every model you generate is shared publicly in the gallery. On Starter and Pro, models are private by default and only appear in the gallery when you publish them.",
+  },
+  {
     q: "What files do I get?",
     a: "A binary STL, a 3MF (millimetre units, opens directly in Bambu Studio, PrusaSlicer, Cura and OrcaSlicer) and a Blender Python script that rebuilds the model with native primitives and booleans so you can keep editing it.",
   },

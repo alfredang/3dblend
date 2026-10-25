@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { spendCredits, refundCredits, InsufficientCreditsError } from "@/lib/credits";
-import { COST } from "@/lib/plans";
+import { COST, defaultVisibility } from "@/lib/plans";
 import { saveFile } from "@/lib/storage";
 import { runHarness, type HistoryItem, type Spec } from "@/agent";
 import { createDeepSeekClient } from "@/agent/llm";
@@ -41,9 +41,10 @@ export async function POST(req: Request) {
 
   const project = await prisma.project.findFirst({
     where: { id: projectId, userId },
-    include: { messages: { orderBy: { createdAt: "asc" }, include: { model: { select: { spec: true } } } } },
+    include: { messages: { orderBy: { createdAt: "asc" }, include: { model: { select: { spec: true } } } }, user: { select: { plan: true } } },
   });
   if (!project) return new Response("Not found", { status: 404 });
+  const isPublicByPlan = defaultVisibility(project.user.plan);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -133,6 +134,7 @@ export async function POST(req: Request) {
               stlPath: "pending",
               blenderPath: "pending",
               version,
+              isPublic: isPublicByPlan,
             },
           });
           const stlPath = await saveFile(`models/${model.id}.stl`, result.stl);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { defaultVisibility } from "@/lib/plans";
 
 /** Start a new project of your own seeded with a public model so you can refine it with the agent. */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +11,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const source = await prisma.model.findUnique({ where: { id } });
   if (!source || (!source.isPublic && source.userId !== session.user.id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const me = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id }, select: { plan: true } });
   const project = await prisma.project.create({ data: { userId: session.user.id, title: `Remix of ${source.title}` } });
   const copy = await prisma.model.create({
     data: {
@@ -23,6 +25,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       stlPath: source.stlPath,
       blenderPath: source.blenderPath,
       version: 1,
+      isPublic: defaultVisibility(me.plan),
     },
   });
   await prisma.message.createMany({

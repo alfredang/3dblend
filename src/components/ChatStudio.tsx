@@ -152,8 +152,11 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
     }
   }
 
+  const freePlan = plan === "FREE";
+
   async function togglePublic() {
     if (!current) return;
+    if (freePlan && current.isPublic) { setError("Models on the Free plan are shared publicly in the gallery. Upgrade to Starter or Pro to keep models private."); return; }
     const res = await fetch(`/api/models/${current.id}/publish`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ isPublic: !current.isPublic }) });
     if (res.ok) {
       const j = await res.json();
@@ -286,8 +289,8 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 )}
               </div>
               <div className="pointer-events-auto flex items-center gap-2">
-                <button onClick={togglePublic} className={cn("glass inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs", current.isPublic ? "text-accent-2" : "text-muted")} title={current.isPublic ? "Public in gallery — click to make private" : "Private — click to publish to the gallery"}>
-                  {current.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}{current.isPublic ? "Public" : "Publish"}
+                <button onClick={togglePublic} className={cn("glass inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs", current.isPublic ? "text-accent-2" : "text-muted")} title={freePlan ? "Free plan: models are public in the gallery (upgrade to keep them private)" : current.isPublic ? "Public in gallery — click to make private" : "Private — click to publish to the gallery"}>
+                  {current.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}{current.isPublic ? (freePlan ? "Public (Free plan)" : "Public") : "Publish"}
                 </button>
                 <Link href={`/m/${current.id}`} className="glass inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs"><Share2 className="h-4 w-4" />Share page</Link>
               </div>
