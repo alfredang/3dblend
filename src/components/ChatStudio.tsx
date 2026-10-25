@@ -9,18 +9,20 @@ import { cn, colorFor } from "@/lib/utils";
 import { COST } from "@/lib/plans";
 import { PrintSetupBar, usePrintSetup } from "./PrintSetup";
 
-export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null; imageUrl?: string; attachmentName?: string }
+export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null; imageUrl?: string; attachmentName?: string; meshStats?: { size: number[]; triangles: number } }
 
 interface Attachment { name: string; type: string; data: string; preview?: string }
 
 /** Downscale images in the browser (max 1280 px, JPEG) so uploads stay small; PDFs are sent as-is. */
 async function prepareAttachment(file: File): Promise<Attachment> {
-  if (file.type === "application/pdf") {
-    if (file.size > 8 * 1024 * 1024) throw new Error("PDF must be under 8 MB");
+  const isModel = /\.(stl|3mf|py)$/i.test(file.name);
+  if (file.type === "application/pdf" || isModel) {
+    if (file.size > 8 * 1024 * 1024) throw new Error("File must be under 8 MB");
     const data = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
-    return { name: file.name, type: file.type, data };
+    const type = file.type || (file.name.toLowerCase().endsWith(".stl") ? "model/stl" : file.name.toLowerCase().endsWith(".3mf") ? "model/3mf" : "text/x-python");
+    return { name: file.name, type, data };
   }
-  if (!file.type.startsWith("image/")) throw new Error("Attach a JPEG/PNG image or a PDF");
+  if (!file.type.startsWith("image/")) throw new Error("Attach an image (JPEG/PNG), a PDF, an STL, a 3MF or a Blender .py script");
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
@@ -99,7 +101,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   }, []);
 
   async function send(text?: string) {
-    const content = (text ?? input).trim() || (attachment ? "Make a printable 3D model of what is shown in the attached reference." : "");
+    const content = (text ?? input).trim() || (attachment ? (/\.(stl|3mf|py)$/i.test(attachment.name) ? "Load the attached model so I can modify it." : "Make a printable 3D model of what is shown in the attached reference.") : "");
     if (!content || busy) return;
     const att = attachment;
     setBusy(true);
@@ -135,7 +137,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
           const j = JSON.parse(data);
           if (ev === "status") setStatus(j.text);
           else if (ev === "message") {
-            if (j.role === "user") setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, id: j.id, imageUrl: j.imageUrl ?? x.imageUrl, attachmentName: j.attachmentName ?? x.attachmentName } : x)));
+            if (j.role === "user") setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, id: j.id, imageUrl: j.imageUrl ?? x.imageUrl, attachmentName: j.attachmentName ?? x.attachmentName, meshStats: j.meshStats } : x)));
             else setMessages((m) => [...m, { id: j.id, role: "assistant", content: j.content, modelId: j.modelId }]);
           } else if (ev === "model") {
             const mm = j.model as StudioModel;
@@ -211,7 +213,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 )}
                 {m.attachmentName && (
                   <a href={m.id.startsWith("tmp-") ? undefined : `/api/messages/${m.id}/attachment`} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-black/20 px-2 py-1 text-xs">
-                    <FileText className="h-3.5 w-3.5" /> {m.attachmentName}
+                    <FileText className="h-3.5 w-3.5" /> {m.attachmentName}{m.meshStats ? ` · ${m.meshStats.size.map((v) => Math.round(v)).join("×")} mm · ${m.meshStats.triangles.toLocaleString()} tris` : ""}
                   </a>
                 )}
                 <Markdown text={m.content} />
@@ -247,7 +249,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 <button type="button" onClick={() => setAttachment(null)} className="ml-auto rounded-full p-1 text-muted hover:bg-fg/10 hover:text-fg" aria-label="Remove attachment"><X className="h-4 w-4" /></button>
               </div>
             )}
-            <input ref={fileRef} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden" onChange={onPickFile} />
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,application/pdf,.stl,.3mf,.py,model/stl,model/3mf,text/x-python" className="hidden" onChange={onPickFile} />
             <textarea
               value={input}
               onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 260)}px`; }}
@@ -259,7 +261,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
             />
             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => (canAttachFiles ? fileRef.current?.click() : setError("Reference images and PDFs are available on Starter and Pro. Upgrade to attach files."))} disabled={busy} className={cn("inline-grid h-9 w-9 place-items-center rounded-full border border-line text-muted hover:border-accent hover:text-fg", !canAttachFiles && "opacity-60")} title={canAttachFiles ? "Attach a reference image or PDF" : "Image/PDF references are a Starter/Pro feature"} aria-label="Attach a reference image or PDF">
+                <button type="button" onClick={() => (canAttachFiles ? fileRef.current?.click() : setError("Attachments (images, PDFs, STL/3MF models, Blender scripts) are available on Starter and Pro. Upgrade to attach files."))} disabled={busy} className={cn("inline-grid h-9 w-9 place-items-center rounded-full border border-line text-muted hover:border-accent hover:text-fg", !canAttachFiles && "opacity-60")} title={canAttachFiles ? "Attach a reference image, PDF, or a model to modify (STL, 3MF, Blender .py)" : "Attachments are a Starter/Pro feature"} aria-label="Attach a reference image or PDF">
                   <Plus className="h-4 w-4" />
                 </button>
                 <span className="hidden text-[11px] text-muted sm:inline">Enter for a new line · ⌘/Ctrl+Enter to send · {models.length ? `${COST.refine} credit per edit` : `${COST.generate} credits per new model`} · {plan}</span>

@@ -130,6 +130,11 @@ export function toBlenderScript(spec: Spec): string {
         emit(`${v}.name = ${JSON.stringify(n.name)}`);
         return v;
       }
+      case "mesh": {
+        const v = name("mesh");
+        emit(`${v} = import_base_mesh(${JSON.stringify(n.name)})  # expects ${n.name}.stl next to this script`);
+        return v;
+      }
     }
   };
 
@@ -145,7 +150,8 @@ export function toBlenderScript(spec: Spec): string {
   emit(`root.name = ${JSON.stringify(spec.name)}`);
   emit(`finish(root)`);
 
-  return `${HEADER(spec)}\n${lines.join("\n")}\n`;
+  const specLine = `# 3DBLEND-SPEC: ${JSON.stringify(spec)}`;
+  return `${HEADER(spec)}\n${lines.join("\n")}\n\n# The parametric spec this script was generated from (upload this file to 3DBlend to continue editing):\n${specLine}\n`;
 }
 
 const py = (v: unknown) => JSON.stringify(v).replace(/\[/g, "(").replace(/\]/g, ")");
@@ -316,6 +322,20 @@ def radial_array(o, count, radius, degrees):
         transform(c, Matrix.Rotation(radians(step * i), 4, 'Z'))
         copies.append(c)
     return union_all([o] + copies)
+
+def import_base_mesh(name):
+    import os
+    path = os.path.join(os.path.dirname(bpy.data.filepath) if bpy.data.filepath else os.getcwd(), name + ".stl")
+    before = set(bpy.data.objects)
+    try:
+        bpy.ops.wm.stl_import(filepath=path)
+    except Exception:
+        bpy.ops.import_mesh.stl(filepath=path)
+    o = (set(bpy.data.objects) - before).pop()
+    o.select_set(False)
+    xs = [v.co.x for v in o.data.vertices]; ys = [v.co.y for v in o.data.vertices]; zs = [v.co.z for v in o.data.vertices]
+    transform(o, Matrix.Translation((-(min(xs)+max(xs))/2, -(min(ys)+max(ys))/2, -min(zs))))
+    return o
 
 def finish(o):
     # Seat on the build plate: centre XY, min Z = 0.

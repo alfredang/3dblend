@@ -48,7 +48,9 @@ export type Node =
   | { op: "mirror"; normal: [number, number, number]; children: Node[] }
   | { op: "repeat"; count: number; step: [number, number, number]; children: Node[] }
   | { op: "radial"; count: number; radius?: number; degrees?: number; children: Node[] }
-  | { op: "ref"; name: string };
+  | { op: "ref"; name: string }
+  /** A mesh supplied by the harness (an uploaded STL/3MF), seated on z=0 and centred. */
+  | { op: "mesh"; name: string };
 
 const lazyNode: z.ZodType<Node> = z.lazy(() =>
   z.discriminatedUnion("op", [
@@ -112,6 +114,7 @@ const lazyNode: z.ZodType<Node> = z.lazy(() =>
       children: z.array(lazyNode).min(1).max(64),
     }),
     z.object({ op: z.literal("ref"), name: z.string().min(1).max(64) }),
+    z.object({ op: z.literal("mesh"), name: z.string().min(1).max(64) }),
   ]),
 );
 

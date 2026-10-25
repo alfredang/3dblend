@@ -15,6 +15,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 ## Features
 
 - **Chat‑to‑STL studio** — large multi‑line composer (Enter for a new line, ⌘/Ctrl+Enter to send) with streaming status while the agent designs, builds, checks, repairs and optimises the model; every version is kept and switchable.
+- **Modify existing models** (Starter/Pro) — upload an STL or 3MF and it becomes `{op:"mesh"}` in the agent's spec: a watertight base solid (via Manifold) the agent can cut, extend, scale or move; upload a 3DBlend Blender script and its embedded spec is restored for further editing.
 - **Reference images and PDFs** (Starter/Pro) — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
 - **Print optimisation pass** — when a build passes but carries warnings (overhangs, thin walls, flat ceilings, loose pieces) the harness asks the agent for a print‑friendlier version and keeps whichever scores better.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
@@ -78,7 +79,8 @@ Key files:
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
-| `src/lib/attachments.ts` | Reference attachments: image pass‑through, PDF text extraction + first‑page render (pdfjs + napi canvas) |
+| `src/lib/attachments.ts` | Attachments: images, PDF text + first‑page render, STL/3MF import, Blender‑script spec recovery |
+| `src/agent/meshio.ts` | STL (ASCII/binary) and 3MF parsers, spec extraction from exported Blender scripts |
 | `src/agent/prompts.ts` | System prompt with the DSL reference and FDM design rules |
 | `scripts/agent-cli.ts` | `npm run agent -- "a hex pencil cup"` → `out/*.stl`, `*.blender.py`, `*.spec.json` |
 

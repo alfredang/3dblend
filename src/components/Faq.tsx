@@ -22,8 +22,8 @@ const FAQ: { q: string; a: string }[] = [
     a: "Every mesh is built by an exact geometry kernel, so it is always watertight. On top of that the harness checks build-volume fit, bed contact, overhangs, bridges and wall thickness for the printer, nozzle and material you select, repairs hard failures automatically and flags anything that still needs supports or a brim.",
   },
   {
-    q: "Can I design from a photo or a drawing?",
-    a: "Yes, on Starter and Pro. Use the + button in the studio to attach a JPEG/PNG image or a PDF. The agent reads the silhouette, proportions and any labelled dimensions and turns them into a printable solid. The Free plan is text prompts only.",
+    q: "Can I design from a photo, a drawing, or modify an existing model?",
+    a: "Yes, on Starter and Pro. Use the + button in the studio to attach a JPEG/PNG image or a PDF (the agent reads the silhouette, proportions and labelled dimensions), or upload an STL, 3MF or a 3DBlend Blender script. Uploaded models become the base solid the agent adds to, cuts, scales or moves — add holes, mounts, lips, text-free features — and every result is re-checked for printability. The Free plan is text prompts only.",
   },
   {
     q: "Which printers are supported?",

@@ -134,6 +134,9 @@ model Message {
   attachmentPath String?
   attachmentName String?
   attachmentText String?
+  /// Uploaded STL/3MF/Blender model converted to binary STL, usable as the agent's base solid.
+  meshPath       String?
+  meshStats      Json?
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   model     Model?   @relation(fields: [modelId], references: [id], onDelete: SetNull)
@@ -162,6 +165,8 @@ model Model {
   remixOfId   String?
   /** Snapshot "Title by Author" so attribution survives if the original is deleted. */
   attribution String?
+  /// Base mesh (uploaded by the user) that this model's spec references via {op:"mesh"}.
+  baseMeshPath String?
   createdAt   DateTime @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)

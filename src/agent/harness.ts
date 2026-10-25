@@ -10,7 +10,7 @@
  * agent deterministic to replay, cheap to run, and safe to expose publicly.
  */
 import { validateSpec, type Spec } from "./spec";
-import { buildSpec, type BuiltMesh } from "./kernel";
+import { buildSpec, type BuiltMesh, type MeshInput } from "./kernel";
 import { analysePrintability, type PrintReport, type PrinterProfile, DEFAULT_PRINTER } from "./checks";
 import { toBinarySTL } from "./stl";
 import { toBlenderScript } from "./blender";
@@ -64,6 +64,8 @@ export interface HarnessOptions {
   image?: string;
   /** Text extracted from an attached PDF for this turn. */
   attachmentText?: string;
+  /** Uploaded meshes the spec may reference with {op:"mesh",name}. */
+  meshes?: Record<string, MeshInput & { size: [number, number, number]; numTri: number }>;
   printer?: PrinterProfile;
   onEvent?: (e: HarnessEvent) => void;
 }
@@ -123,9 +125,12 @@ function userContent(text: string, image?: string, attachmentText?: string): Cha
   ];
 }
 
-function toMessages(history: HistoryItem[], userPrompt: string, printer: PrinterProfile, image?: string, attachmentText?: string): ChatMessage[] {
+function toMessages(history: HistoryItem[], userPrompt: string, printer: PrinterProfile, image?: string, attachmentText?: string, meshes?: HarnessOptions["meshes"]): ChatMessage[] {
   const target = `Target printer: ${printer.name ?? "generic FDM"}, build volume ${printer.bed.join("×")} mm, ${printer.nozzle} mm nozzle, ${printer.material}. Minimum wall ${(2 * printer.nozzle * 1.05).toFixed(1)} mm${printer.material === "TPU" ? "; flexible material — avoid overhangs and thin walls" : ""}.`;
-  const msgs: ChatMessage[] = [{ role: "system", content: `${SYSTEM_PROMPT}\n\n## Current target\n${target}` }];
+  const meshNote = meshes && Object.keys(meshes).length
+    ? "\n\n## Uploaded model\n" + Object.entries(meshes).map(([k, m]) => `{"op":"mesh","name":"${k}"} is the user's uploaded solid: ${m.size.map((v) => v.toFixed(1)).join(" × ")} mm, ${m.numTri} triangles, seated on z=0 and centred on the origin (so it spans ±${(m.size[0] / 2).toFixed(1)} in X, ±${(m.size[1] / 2).toFixed(1)} in Y, 0..${m.size[2].toFixed(1)} in Z). Use it as the base and add, cut, scale or move features relative to it; do not rebuild it from primitives unless asked.`).join("\n")
+    : "";
+  const msgs: ChatMessage[] = [{ role: "system", content: `${SYSTEM_PROMPT}\n\n## Current target\n${target}${meshNote}` }];
   for (const h of history.slice(-12)) {
     if (h.role === "assistant") {
       msgs.push({ role: "assistant", content: JSON.stringify({ message: h.content, spec: h.spec ?? null }) });
@@ -144,7 +149,8 @@ export async function runHarness(
 ): Promise<HarnessResult> {
   const { llm, onEvent = () => {}, printer = DEFAULT_PRINTER } = opts;
   const maxAttempts = opts.maxAttempts ?? 4;
-  const messages = toMessages(history, userPrompt, printer, opts.image, opts.attachmentText);
+  const messages = toMessages(history, userPrompt, printer, opts.image, opts.attachmentText, opts.meshes);
+  const buildOpts = { meshes: opts.meshes };
 
   let lastMessage = "";
   let lastSpec: Spec | null = null;
@@ -183,7 +189,7 @@ export async function runHarness(
     onEvent({ type: "status", text: "Building solid geometry…" });
     let mesh: BuiltMesh;
     try {
-      mesh = await buildSpec(validation.spec);
+      mesh = await buildSpec(validation.spec, buildOpts);
       onEvent({ type: "build", ok: true, triangles: mesh.numTri });
     } catch (e) {
       const msg = (e as Error).message;
@@ -217,7 +223,7 @@ export async function runHarness(
         const reply2 = parseReply(raw2);
         const v2 = reply2.spec ? validateSpec(reply2.spec) : null;
         if (v2 && v2.ok) {
-          const mesh2 = await buildSpec(v2.spec);
+          const mesh2 = await buildSpec(v2.spec, buildOpts);
           const report2 = analysePrintability(mesh2, printer);
           const before = printScore(report), after = printScore(report2);
           const kept = report2.ok && after < before ? "optimized" : "original";
@@ -246,7 +252,7 @@ export async function runHarness(
   // Exhausted attempts: return whatever we have so the user is never left empty-handed.
   if (lastSpec) {
     try {
-      const mesh = await buildSpec(lastSpec);
+      const mesh = await buildSpec(lastSpec, buildOpts);
       const report = analysePrintability(mesh, printer);
       return {
         message: `${lastMessage}\n\n> ⚠️ I could not fully satisfy the printability checks: ${report.errors.join("; ")}. The model is still exported so you can inspect it.`,

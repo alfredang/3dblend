@@ -40,9 +40,13 @@ export interface BuiltMesh {
 
 const DEFAULT_SEGMENTS = 64;
 
-export async function buildSpec(spec: Spec): Promise<BuiltMesh> {
+export interface MeshInput { positions: Float32Array; indices: Uint32Array }
+export interface BuildOptions { meshes?: Record<string, MeshInput> }
+
+export async function buildSpec(spec: Spec, options: BuildOptions = {}): Promise<BuiltMesh> {
   const wasm = await getWasm();
-  const { Manifold, CrossSection } = wasm;
+  const { Manifold, CrossSection, Mesh } = wasm;
+  const meshCache = new Map<string, M>();
   wasm.setCircularSegments(DEFAULT_SEGMENTS);
 
   const parts = spec.parts ?? {};
@@ -148,6 +152,23 @@ export async function buildSpec(spec: Spec): Promise<BuiltMesh> {
         const target = parts[n.name];
         if (!target) throw new Error(`unknown part "${n.name}"`);
         return build(target, depth + 1);
+      }
+      case "mesh": {
+        const src = options.meshes?.[n.name];
+        if (!src) throw new Error(`no uploaded mesh named "${n.name}" is available — only use {"op":"mesh"} when the user uploaded a model`);
+        if (!meshCache.has(n.name)) {
+          const mesh = new Mesh({ numProp: 3, vertProperties: src.positions, triVerts: src.indices });
+          mesh.merge();
+          const man = track(Manifold.ofMesh(mesh));
+          const st = man.status?.();
+          if (man.isEmpty() || (st && st.value !== 0 && st !== "NoError" && st.value !== undefined)) {
+            throw new Error("the uploaded mesh is not watertight (it has holes or self-intersections); repair it in Blender or your slicer and upload again");
+          }
+          // Seat on the bed and centre, so the agent can reason in a known frame.
+          const bb = man.boundingBox();
+          meshCache.set(n.name, track(man.translate([-(bb.min[0] + bb.max[0]) / 2, -(bb.min[1] + bb.max[1]) / 2, -bb.min[2]])));
+        }
+        return meshCache.get(n.name)!;
       }
     }
   };

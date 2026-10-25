@@ -27,6 +27,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       version: 1,
       isPublic: defaultVisibility(me.plan),
       // Attribution: point at the root original if the source is itself a remix.
+      baseMeshPath: source.baseMeshPath,
       remixOfId: source.remixOfId ?? source.id,
       attribution: source.attribution ?? `${source.title} by ${source.user.name ?? "anonymous"}`,
     },

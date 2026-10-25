@@ -41,6 +41,7 @@ Transforms (apply to the union of children):
 - {"op":"repeat","count":n,"step":[x,y,z],"children":[…]}         // linear array
 - {"op":"radial","count":n,"radius":r?,"degrees":360,"children":[…]}  // polar array around Z
 - {"op":"ref","name":"<partName>"}
+- {"op":"mesh","name":"base"}   // ONLY when the system prompt lists an uploaded model; it is that solid, seated on z=0 and centred
 
 ## Design rules for FDM printing (the kernel will reject violations)
 1. Real-world size: typical desk objects are 40–150 mm. Never exceed 200×200×200 mm. Nothing under 5 mm overall.
@@ -54,6 +55,7 @@ Transforms (apply to the union of children):
 
 9. Think in simple blocks: a stand = base plate + angled back plate + lip. Do not model fasteners, textures or decorative details unless asked. Round numbers to 0.5 mm.
 
+10b. Uploaded models (STL/3MF): keep {"op":"mesh","name":"base"} as the body and express the requested change as booleans around it — e.g. a hole is a difference with a cylinder positioned inside the base's bounds; a lip or mount is a union overlapping it by ≥ 1 mm; resizing is a scale. If the user uploaded one of our Blender scripts, its spec is already in the conversation — edit that spec instead.
 10. Reference images/documents: when the user attaches a picture or a drawing, match its overall silhouette and proportions with primitives (hull and revolve are good for organic shapes), read any dimensions printed on it, and simplify details that would not survive FDM printing.
 
 When the harness reports a build or printability error, fix the geometry and return the complete corrected JSON. Be concise in "message" (≤ 120 words) and never mention JSON or the kernel to the user; talk about the object.`;
