@@ -17,6 +17,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **Chat‑to‑STL studio** — large multi‑line composer (Enter for a new line, ⌘/Ctrl+Enter to send) with streaming status while the agent designs, builds, checks, repairs and optimises the model; every version is kept and switchable.
 - **Modify existing models** (Starter/Pro) — upload an STL or 3MF and it becomes `{op:"mesh"}` in the agent's spec: a watertight base solid (via Manifold) the agent can cut, extend, scale or move; upload a 3DBlend Blender script and its embedded spec is restored for further editing.
 - **Reference images and PDFs** (Starter/Pro) — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
+- **Brief enrichment** — short requests are first expanded by the agent into a precise design brief (explicit dimensions, fits, features, bed orientation); the assumptions it made are shown to the user and the brief is stored with the model.
 - **Print optimisation pass** — when a build passes but carries warnings (overhangs, thin walls, flat ceilings, loose pieces) the harness asks the agent for a print‑friendlier version and keeps whichever scores better.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
 - **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).
@@ -31,8 +32,8 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **HitPay subscriptions** — Starter/Pro checkout on HitPay's hosted page (cards, PayNow and more); activation is verified against HitPay's API, every charge auto‑generates a numbered invoice (PDF download from the account page) and resets credits; users can cancel anytime and keep access until the paid period ends; a daily reconciliation keeps subscriptions in sync even if a webhook is missed.
 - **Remix attribution** — remixing a gallery model records the original (`remixOfId`) and a "Title by Author" snapshot that every later version inherits; shown on the share page, in the studio, on gallery cards and inside the 3MF metadata (CC BY 4.0).
 - **Visibility by plan** — Free‑plan models are always public in the gallery; Starter and Pro models are private until the owner publishes them (`defaultVisibility` / `canMakePrivate` in `src/lib/plans.ts`).
-- **Admin backend** — `/admin` (users flagged `isAdmin`): overview KPIs, all users with search and pagination (plan, credit top‑ups, grant/revoke admin), every subscription and invoice (sync, cancel, PDF), and gallery moderation (feature, hide, delete).
-- **Sample content** — six featured models (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
+- **Admin backend** — `/admin` (users flagged `isAdmin`): overview KPIs, all users with search and pagination (plan, credit top‑ups, grant/revoke admin), every subscription and invoice (sync, cancel, PDF), gallery moderation (feature, hide, delete), and an **Integrations** tab: DeepSeek API, HitPay keys, SMTP, each with a test button, plus editable transactional email templates (welcome, subscription activated, invoice with PDF, cancellation). Settings saved there override the environment and secrets are encrypted at rest.
+- **Sample content** — seven featured models (one built from a deliberately detailed brief as a prompting example) (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
 
 ## Architecture
 
@@ -79,6 +80,8 @@ Key files:
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
+| `src/lib/settings.ts` | DB‑backed integration settings with env fallback and AES‑GCM‑encrypted secrets |
+| `src/lib/email.ts` | SMTP sending (nodemailer) and editable `{{variable}}` templates |
 | `src/lib/attachments.ts` | Attachments: images, PDF text + first‑page render, STL/3MF import, Blender‑script spec recovery |
 | `src/agent/meshio.ts` | STL (ASCII/binary) and 3MF parsers, spec extraction from exported Blender scripts |
 | `src/agent/prompts.ts` | System prompt with the DSL reference and FDM design rules |
@@ -121,6 +124,7 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `HITPAY_API_KEY`, `HITPAY_SALT`, `HITPAY_WEBHOOK_SALT`, `HITPAY_SANDBOX`, `HITPAY_CURRENCY` | | enable paid upgrades via HitPay recurring billing (sandbox with `HITPAY_SANDBOX=1`); without a key the UI shows “Coming soon” |
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
 | `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_NAME`, `SMTP_FROM_EMAIL`, `SMTP_REPLY_TO` | | transactional email; all of these (and the AI / HitPay keys) can instead be set in Admin → Integrations |
 | `SEED_ADMIN_PASSWORD`, `SEED_TEST_PASSWORD` | | when set, `admin@3dblend.app` (admin, Pro) and `test@3dblend.app` (Free) are created/updated on boot |
 
 ## Deploy on Hostinger with Coolify (CI/CD)
@@ -161,6 +165,7 @@ Health check: `GET /api/health`.
 | `/api/billing/cancel`, `/api/billing/sync` | POST | cancel at HitPay / re-check status |
 | `/api/invoices/:id/pdf` | GET | invoice PDF (owner or admin) |
 | `/api/admin/users`, `/api/admin/models`, `/api/admin/subscriptions` | PATCH/DELETE | admin actions |
+| `/api/admin/settings`, `/api/admin/settings/test`, `/api/admin/email-templates`, `/api/admin/email-templates/test` | GET/PUT/POST | integrations and email templates |
 | `/api/cron/reset-credits` | GET | monthly credit top‑up (secret header) |
 | `/api/health` | GET | DB connectivity |
 

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { currentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AdminUsers, AdminModels, AdminSubscriptions } from "@/components/AdminTables";
+import { AdminIntegrations } from "@/components/AdminIntegrations";
+import { appUrl } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
@@ -14,6 +16,7 @@ const TABS = [
   ["users", "Users"],
   ["subscriptions", "Subscriptions & invoices"],
   ["models", "Models"],
+  ["integrations", "Integrations"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 const PAGE = 50;
@@ -103,6 +106,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
   }
 
+  if (tab === "integrations") body = <AdminIntegrations appUrl={appUrl()} />;
+
   const pages = Math.max(1, Math.ceil(total / PAGE));
 
   return (
@@ -112,7 +117,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h1 className="text-3xl font-semibold">Admin</h1>
           <p className="text-sm text-muted">Signed in as {admin.email}</p>
         </div>
-        {tab !== "overview" && (
+        {tab !== "overview" && tab !== "integrations" && (
           <form className="flex items-center gap-2">
             <input type="hidden" name="tab" value={tab} />
             <input name="q" defaultValue={q} placeholder={tab === "models" ? "Search title or owner email…" : "Search email or name…"} className="input md:w-80" />
@@ -135,15 +140,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <div key={String(k)} className="card p-5"><div className="text-xs uppercase tracking-wide text-muted">{k}</div><div className="mt-1 text-2xl font-semibold">{v as string}</div>{sub ? <div className="text-xs text-accent-2">{sub}</div> : null}</div>
             ))}
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {[["users", "Manage users", "Change plans, top up credits, grant admin."], ["subscriptions", "Subscriptions & invoices", "See every HitPay subscription, cancellations and all invoices."], ["models", "Moderate the gallery", "Feature, hide or delete any model."]].map(([t, title, desc]) => (
+          <div className="mt-6 grid gap-4 md:grid-cols-4">
+            {[["users", "Manage users", "Change plans, top up credits, grant admin."], ["subscriptions", "Subscriptions & invoices", "See every HitPay subscription, cancellations and all invoices."], ["models", "Moderate the gallery", "Feature, hide or delete any model."], ["integrations", "Integrations", "DeepSeek API, HitPay keys, SMTP and email templates."]].map(([t, title, desc]) => (
               <Link key={t} href={href(t as Tab)} className="card p-5 transition hover:border-accent/50"><div className="font-medium">{title}</div><p className="mt-1 text-sm text-muted">{desc}</p></Link>
             ))}
           </div>
         </>
       )}
 
-      {tab !== "overview" && (
+      {tab === "integrations" && <div className="mt-6">{body}</div>}
+
+      {tab !== "overview" && tab !== "integrations" && (
         <div className="mt-6">
           <div className="mb-3 text-sm text-muted">{total} result{total === 1 ? "" : "s"}{pages > 1 ? ` · page ${page} of ${pages}` : ""}</div>
           {body}

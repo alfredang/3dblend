@@ -3,19 +3,21 @@
  * Sandbox: https://api.sandbox.hit-pay.com — set HITPAY_SANDBOX=1.
  */
 import crypto from "node:crypto";
+import { getConfig } from "@/lib/settings";
 
-export function hitpayConfigured() {
-  return Boolean(process.env.HITPAY_API_KEY);
+export async function hitpayConfigured() {
+  return Boolean((await getConfig()).hitpay.apiKey);
 }
 
-export function hitpayBase() {
-  return process.env.HITPAY_SANDBOX === "1" ? "https://api.sandbox.hit-pay.com" : "https://api.hit-pay.com";
+export function hitpayBase(sandbox: boolean) {
+  return sandbox ? "https://api.sandbox.hit-pay.com" : "https://api.hit-pay.com";
 }
 
 async function call<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
-  const key = process.env.HITPAY_API_KEY;
-  if (!key) throw new Error("HITPAY_API_KEY is not set");
-  const res = await fetch(`${hitpayBase()}/v1${path}`, {
+  const { hitpay: cfg } = await getConfig();
+  const key = cfg.apiKey;
+  if (!key) throw new Error("HitPay API key is not set (Admin → Integrations)");
+  const res = await fetch(`${hitpayBase(cfg.sandbox)}/v1${path}`, {
     method,
     headers: { "X-BUSINESS-API-KEY": key, "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json", Accept: "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -59,6 +61,8 @@ export const hitpay = {
   }) => call<HitpayBilling>("POST", "/recurring-billing", { ...p, send_email: p.send_email ?? true }),
   getBilling: (id: string) => call<HitpayBilling>("GET", `/recurring-billing/${id}`),
   cancelBilling: (id: string) => call<HitpayBilling>("DELETE", `/recurring-billing/${id}`),
+  /** Connectivity check used by the admin "Test" button. */
+  ping: () => call<unknown>("GET", "/subscription-plan?per_page=1"),
 };
 
 /** Today's date in Singapore time as YYYY-MM-DD (HitPay start_date is in SGT). */

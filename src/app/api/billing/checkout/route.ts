@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { plan } = await req.json().catch(() => ({}));
   if (plan !== "STARTER" && plan !== "PRO") return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-  if (!hitpayConfigured()) return NextResponse.json({ error: "Payments are not configured yet (HITPAY_API_KEY missing)." }, { status: 503 });
+  if (!(await hitpayConfigured())) return NextResponse.json({ error: "Payments are not configured yet (set the HitPay API key in Admin → Integrations)." }, { status: 503 });
   try {
     const { url } = await startCheckout(session.user.id, plan);
     return NextResponse.json({ url });

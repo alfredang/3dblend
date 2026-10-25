@@ -195,7 +195,12 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
             <div className="space-y-3">
               <div className="rounded-2xl bg-elev p-4 text-sm">
                 <div className="flex items-center gap-2 font-medium"><Sparkles className="h-4 w-4 text-accent" /> What should we print today?</div>
-                <p className="mt-1 text-muted">Describe the object, its purpose and rough size. I&apos;ll design a printable solid and you can refine it here.</p>
+                <p className="mt-1 text-muted">Describe the object, its purpose and rough size. I&apos;ll turn it into a precise brief, design a printable solid, and you can refine it here.</p>
+                <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted">
+                  <li><b className="text-fg">Size & fit:</b> overall mm, what it must hold (a 75 mm phone, M3 bolts, a 20 mm pipe)</li>
+                  <li><b className="text-fg">Features:</b> holes, slots, lips, chamfers, counts and spacing</li>
+                  <li><b className="text-fg">Printing:</b> which face sits on the bed, wall thickness, no supports</li>
+                </ul>
               </div>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((sg) => (

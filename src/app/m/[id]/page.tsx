@@ -13,7 +13,7 @@ import { Markdown } from "@/components/Markdown";
 
 export const dynamic = "force-dynamic";
 
-type Stats = { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; tips?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string } };
+type Stats = { brief?: string | null; assumptions?: string[] | null; size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; tips?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string } };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -36,6 +36,13 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
 
   const stats = model.stats as Stats;
   const url = `${appUrl()}/m/${model.id}`;
+  const reply = await prisma.message.findFirst({ where: { modelId: model.id, role: "assistant" }, select: { content: true } });
+  // Full conversation that produced this version: the original brief plus every refinement up to it.
+  const history = model.projectId
+    ? await prisma.message.findMany({ where: { projectId: model.projectId, role: "user", createdAt: { lte: model.createdAt } }, orderBy: { createdAt: "asc" }, select: { content: true, attachmentName: true } })
+    : [];
+  const original = history[0]?.content ?? model.prompt;
+  const refinements = history.slice(1);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
@@ -45,6 +52,31 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <ShareButtons url={url} title={model.title} />
             <LikeButton modelId={model.id} initialCount={model.likesCount} initialLiked={Array.isArray(model.likes) && model.likes.length > 0} />
+          </div>
+          <div className="card mt-4 p-5">
+            <div className="flex items-center gap-2 text-sm font-medium"><Sparkles className="h-4 w-4 text-accent" /> Prompt</div>
+            <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed">{original}{history[0]?.attachmentName ? <span className="ml-2 rounded-full bg-fg/10 px-2 py-0.5 text-xs text-muted">📎 {history[0].attachmentName}</span> : null}</p>
+            {stats.brief && (
+              <>
+                <div className="mt-4 text-sm font-medium text-muted">Design brief the agent worked from</div>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{stats.brief}</p>
+                {stats.assumptions?.length ? <p className="mt-1 text-xs text-muted">Assumed: {stats.assumptions.join(" · ")}</p> : null}
+              </>
+            )}
+            {refinements.length > 0 && (
+              <>
+                <div className="mt-4 text-sm font-medium text-muted">Refinements ({refinements.length})</div>
+                <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm">
+                  {refinements.map((r, i) => <li key={i} className="whitespace-pre-wrap">{r.content}{r.attachmentName ? <span className="ml-2 rounded-full bg-fg/10 px-2 py-0.5 text-xs text-muted">📎 {r.attachmentName}</span> : null}</li>)}
+                </ol>
+              </>
+            )}
+            {reply?.content && (
+              <>
+                <div className="mt-4 text-sm font-medium text-muted">Agent response for this version</div>
+                <div className="prose-chat mt-1 text-sm text-muted"><Markdown text={reply.content} /></div>
+              </>
+            )}
           </div>
         </div>
 
@@ -91,10 +123,6 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
             {isOwner && model.project && <Link href={`/studio/${model.project.id}`} className="btn-ghost !py-3"><Sparkles className="h-4 w-4" /> Continue in studio</Link>}
           </div>
 
-          <details className="card p-4 text-sm">
-            <summary className="cursor-pointer font-medium">Original prompt</summary>
-            <div className="prose-chat mt-2 text-muted"><Markdown text={model.prompt} /></div>
-          </details>
         </aside>
       </div>
     </div>

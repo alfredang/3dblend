@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PLANS, COST } from "@/lib/plans";
 import { UpgradeButton } from "@/components/UpgradeButton";
+import { hitpayConfigured } from "@/lib/billing/hitpay";
 
 export const metadata = { title: "Pricing" };
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function PricingPage() {
   const session = await auth();
   const user = session?.user?.id ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } }) : null;
-  const billingReady = Boolean(process.env.HITPAY_API_KEY);
+  const billingReady = await hitpayConfigured();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">

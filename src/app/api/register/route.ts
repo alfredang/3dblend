@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { PLANS } from "@/lib/plans";
+import { notify } from "@/lib/email";
 
 const schema = z.object({ name: z.string().min(1).max(60), email: z.string().email(), password: z.string().min(8).max(100) });
 
@@ -22,5 +23,6 @@ export async function POST(req: Request) {
     },
     select: { id: true },
   });
+  notify("welcome", email.toLowerCase(), { name, email: email.toLowerCase(), credits: PLANS.FREE.credits });
   return NextResponse.json({ id: user.id });
 }

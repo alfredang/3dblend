@@ -201,3 +201,21 @@ model CreditTransaction {
 
   @@index([userId, createdAt])
 }
+
+/// Admin-editable integration settings (env vars are the fallback). Secret values are encrypted at rest.
+model Setting {
+  key       String   @id
+  value     String
+  secret    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+/// Admin-editable transactional email templates ({{variables}}).
+model EmailTemplate {
+  key       String   @id
+  subject   String
+  body      String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}

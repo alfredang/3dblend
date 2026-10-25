@@ -70,3 +70,11 @@ export const OPTIMIZE_PROMPT = (warnings: string[], metrics: string) =>
   `The model builds and is printable, but it can print better. Current metrics: ${metrics}.\n` +
   warnings.map((w) => `- ${w}`).join("\n") +
   `\n\nImprove the design for FDM printing while keeping the same object, purpose and overall dimensions: replace steep overhangs with 45° chamfers or hull blends, thicken thin features, widen the base or add a foot, turn flat ceilings into sloped roofs, and fuse any separate pieces. Return the complete improved JSON (message + spec). Keep the "message" short and mention what you optimised.`;
+
+export const BRIEF_PROMPT = `You are a senior product designer preparing a precise brief for a CAD engineer who will build a 3D-printable part from it. Rewrite the user's request as a complete design brief. Rules:
+- Keep the user's intent and every number they gave; never contradict them.
+- Fill every gap with sensible, explicit values: overall dimensions in mm, wall thickness, hole sizes with clearance, radii/chamfers, spacing, orientation and which face sits on the print bed, and what the object must fit or hold (e.g. a 75 mm phone, M3 bolts, a 20 mm pipe).
+- Prefer real-world standard sizes (phones, cables, bolts, cups, pens, Raspberry Pi hole patterns, etc.).
+- Keep the part printable without supports where possible.
+- Be concrete and compact: 80–160 words of specification, no marketing language.
+Return ONLY minified JSON: {"brief":"<the rewritten brief>","assumptions":["<each value you invented that the user did not state, max 6, each ≤ 12 words>"]}`;

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { verifyEventSignature, verifyLegacyHmac } from "@/lib/billing/hitpay";
 import { syncSubscription } from "@/lib/billing/subscriptions";
+import { getConfig } from "@/lib/settings";
 
 export const runtime = "nodejs";
 
@@ -13,12 +14,13 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const raw = await req.text();
   const ct = req.headers.get("content-type") || "";
+  const { hitpay: cfg } = await getConfig();
   let billingId: string | undefined;
   let reference: string | undefined;
   let email: string | undefined;
 
   if (ct.includes("application/json")) {
-    const salt = process.env.HITPAY_WEBHOOK_SALT;
+    const salt = cfg.webhookSalt;
     if (!salt || !verifyEventSignature(raw, req.headers.get("hitpay-signature"), salt)) return new Response("Invalid signature", { status: 401 });
     const body = JSON.parse(raw) as Record<string, unknown>;
     billingId = (body.recurring_billing_id as string) || ((body.recurring_billing as { id?: string } | undefined)?.id) || ((body.subscription as { id?: string } | undefined)?.id) || (req.headers.get("hitpay-event-object") === "recurring_billing" ? (body.id as string) : undefined);
@@ -26,7 +28,7 @@ export async function POST(req: Request) {
     email = ((body.customer as { email?: string } | undefined)?.email) || undefined;
   } else {
     const params = Object.fromEntries(new URLSearchParams(raw)) as Record<string, string>;
-    const salt = process.env.HITPAY_SALT;
+    const salt = cfg.salt;
     if (!salt || !verifyLegacyHmac(params, salt)) return new Response("Invalid hmac", { status: 401 });
     billingId = params.recurring_billing_id;
     reference = params.reference;

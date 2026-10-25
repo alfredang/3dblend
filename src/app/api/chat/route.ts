@@ -6,6 +6,7 @@ import { saveFile } from "@/lib/storage";
 import { runHarness, type HistoryItem, type Spec } from "@/agent";
 import { validateSpec } from "@/agent/spec";
 import { createDeepSeekClient } from "@/agent/llm";
+import { getConfig } from "@/lib/settings";
 import { z } from "zod";
 import { resolveSetup } from "@/lib/printers";
 import { processAttachment, toDataUrl, MAX_ATTACHMENT_BYTES } from "@/lib/attachments";
@@ -138,7 +139,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        const llm = createDeepSeekClient();
+        const llm = createDeepSeekClient((await getConfig()).ai);
         const result = await runHarness(message, history, {
           llm,
           printer,
@@ -149,6 +150,7 @@ export async function POST(req: Request) {
             if (e.type === "status") send("status", { text: e.text });
             if (e.type === "build" && e.ok) send("status", { text: `Built ${e.triangles} triangles · checking printability…` });
             if (e.type === "validation" && !e.ok) send("status", { text: "Fixing spec issues…" });
+            if (e.type === "brief") send("status", { text: "Brief ready — designing to spec…" });
             if (e.type === "optimize") send("status", { text: e.kept === "optimized" ? `Optimised: print score ${e.before.toFixed(0)} → ${e.after.toFixed(0)}` : "Kept the original (optimisation did not improve it)" });
           },
         });
@@ -166,7 +168,7 @@ export async function POST(req: Request) {
               description: result.spec.description,
               prompt: message,
               spec: result.spec as object,
-              stats: { ...result.report.metrics, ok: result.report.ok, warnings: result.report.warnings, errors: result.report.errors, tips: result.report.tips, recommendedLayerHeight: result.report.recommendedLayerHeight, printer: result.report.printer, setup: { printerId: setup.printerId, nozzle: setup.nozzle, material: setup.material }, printNotes: result.spec.printNotes ?? null, attempts: result.attempts, llm: result.model } as object,
+              stats: { ...result.report.metrics, ok: result.report.ok, warnings: result.report.warnings, errors: result.report.errors, tips: result.report.tips, recommendedLayerHeight: result.report.recommendedLayerHeight, printer: result.report.printer, setup: { printerId: setup.printerId, nozzle: setup.nozzle, material: setup.material }, printNotes: result.spec.printNotes ?? null, brief: result.brief ?? null, assumptions: result.assumptions ?? null, attempts: result.attempts, llm: result.model } as object,
               stlPath: "pending",
               blenderPath: "pending",
               version,

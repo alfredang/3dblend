@@ -139,4 +139,38 @@ export const SAMPLE_SPECS: { prompt: string; likes: number; downloads: number; s
       },
     },
   },
+  {
+    prompt: `Design a desk pen-and-phone caddy for a home office, printed in PLA on a Bambu Lab A1 with a 0.4 mm nozzle, no supports.
+
+Overall footprint 120 × 80 mm, 10 mm tall base plate with 4 mm rounded vertical corners and a 2 mm chamfer on the top edge so it looks finished.
+Back half: a raised block 120 × 38 × 45 mm containing three vertical pen holes, Ø13 mm, spaced 36 mm apart on centres, each 40 mm deep with a flat bottom (so the base stays solid).
+Front half: a phone slot 85 mm wide × 13 mm thick, angled 70° from horizontal, cut 18 mm deep into a 120 × 32 × 24 mm block, with an 8 mm wide cable channel running from the bottom of the slot out through the back of the caddy for a charging cable.
+Left side: a shallow tray 30 × 70 × 6 mm recess for paper clips, with a 45° sloped front edge.
+Walls everywhere at least 2.4 mm. Add 0.3 mm clearance on the phone slot. Keep all overhangs under 45° so it prints clean, flat base down.`,
+    likes: 189, downloads: 540,
+    spec: {
+      name: "Desk Pen & Phone Caddy",
+      description: "A 120 × 80 mm desk caddy with three Ø13 mm pen holes, a 70° phone slot with a rear cable channel, and a paper-clip tray; built from a detailed brief.",
+      units: "mm",
+      printNotes: "Print flat base down on a textured plate, 0.2 mm layers, 15% infill, 3 walls, no supports.",
+      parts: {
+        penHole: { op: "cylinder", height: 41, radius: 6.5, segments: 48 },
+      },
+      root: {
+        op: "difference",
+        children: [
+          { op: "union", children: [
+            { op: "roundedBox", size: [120, 80, 10], radius: 4 },
+            { op: "translate", by: [0, 42, 8], children: [ { op: "roundedBox", size: [120, 38, 37], radius: 4 } ] },
+            { op: "translate", by: [34, 2, 8], children: [ { op: "roundedBox", size: [86, 32, 16], radius: 3 } ] },
+          ] },
+          { op: "translate", by: [24, 61, 5], children: [ { op: "repeat", count: 3, step: [36, 0, 0], children: [ { op: "ref", name: "penHole" } ] } ] },
+          { op: "translate", by: [77, 18, 28], children: [ { op: "rotate", degrees: [-20, 0, 0], children: [ { op: "cube", size: [85.6, 13.3, 40], center: true } ] } ] },
+          { op: "translate", by: [73, -1, 2], children: [ { op: "cube", size: [8, 82, 7] } ] },
+          { op: "translate", by: [3, 5, 4], children: [ { op: "cube", size: [28, 70, 10] } ] },
+          { op: "translate", by: [3, 5, 4], children: [ { op: "rotate", degrees: [0, 0, 0], children: [ { op: "cube", size: [28, 4, 10] } ] } ] },
+        ],
+      },
+    },
+  },
 ];

@@ -14,11 +14,12 @@ import { buildSpec, type BuiltMesh, type MeshInput } from "./kernel";
 import { analysePrintability, type PrintReport, type PrinterProfile, DEFAULT_PRINTER } from "./checks";
 import { toBinarySTL } from "./stl";
 import { toBlenderScript } from "./blender";
-import { SYSTEM_PROMPT, REPAIR_PROMPT, OPTIMIZE_PROMPT } from "./prompts";
+import { SYSTEM_PROMPT, REPAIR_PROMPT, OPTIMIZE_PROMPT, BRIEF_PROMPT } from "./prompts";
 import type { ChatMessage, LLMClient } from "./llm";
 
 export type HarnessEvent =
   | { type: "status"; text: string }
+  | { type: "brief"; brief: string; assumptions: string[] }
   | { type: "optimize"; before: number; after: number; kept: "optimized" | "original" }
   | { type: "attempt"; n: number; max: number }
   | { type: "llm"; chars: number }
@@ -29,6 +30,9 @@ export type HarnessEvent =
 
 export interface HarnessResult {
   message: string;
+  /** Expanded design brief the model was generated from (new generations only). */
+  brief?: string;
+  assumptions?: string[];
   spec: Spec | null;
   mesh?: BuiltMesh;
   stl?: Buffer;
@@ -66,6 +70,8 @@ export interface HarnessOptions {
   attachmentText?: string;
   /** Uploaded meshes the spec may reference with {op:"mesh",name}. */
   meshes?: Record<string, MeshInput & { size: [number, number, number]; numTri: number }>;
+  /** Expand short requests into a precise brief before generating (default true for new models). */
+  enrich?: boolean;
   printer?: PrinterProfile;
   onEvent?: (e: HarnessEvent) => void;
 }
@@ -149,7 +155,34 @@ export async function runHarness(
 ): Promise<HarnessResult> {
   const { llm, onEvent = () => {}, printer = DEFAULT_PRINTER } = opts;
   const maxAttempts = opts.maxAttempts ?? 4;
-  const messages = toMessages(history, userPrompt, printer, opts.image, opts.attachmentText, opts.meshes);
+
+  // --- Brief enrichment: turn a short request into a precise specification. ---
+  let brief: string | undefined;
+  let assumptions: string[] | undefined;
+  const isNewModel = !history.some((h) => h.spec);
+  const shouldEnrich = (opts.enrich ?? true) && isNewModel && userPrompt.trim().length < 600 && !opts.meshes;
+  if (shouldEnrich) {
+    onEvent({ type: "status", text: "Writing a precise design brief…" });
+    try {
+      const target = `Target printer: ${printer.name ?? "generic FDM"}, bed ${printer.bed.join("×")} mm, ${printer.nozzle} mm nozzle, ${printer.material}.`;
+      const raw = await llm.complete([
+        { role: "system", content: BRIEF_PROMPT },
+        { role: "user", content: userContent(`${target}\n\nUser request: ${userPrompt}`, opts.image, opts.attachmentText) },
+      ], { json: true, maxTokens: 1200 });
+      const obj = JSON.parse(balanceBrackets(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)));
+      if (typeof obj.brief === "string" && obj.brief.length > 40) {
+        const b: string = obj.brief.trim();
+        const a: string[] = Array.isArray(obj.assumptions) ? obj.assumptions.filter((x: unknown): x is string => typeof x === "string").slice(0, 6) : [];
+        brief = b;
+        assumptions = a;
+        onEvent({ type: "brief", brief: b, assumptions: a });
+      }
+    } catch (e) {
+      onEvent({ type: "status", text: `Brief step skipped (${(e as Error).message})` });
+    }
+  }
+  const effectivePrompt = brief ? `${userPrompt}\n\n## Design brief (use these exact values)\n${brief}` : userPrompt;
+  const messages = toMessages(history, effectivePrompt, printer, opts.image, opts.attachmentText, opts.meshes);
   const buildOpts = { meshes: opts.meshes };
 
   let lastMessage = "";
@@ -174,7 +207,7 @@ export async function runHarness(
 
     // Chat-only turn.
     if (reply.spec === null || reply.spec === undefined) {
-      return { message: reply.message || "How would you like to change the model?", spec: null, attempts: attempt, model: llm.model };
+      return { message: reply.message || "How would you like to change the model?", spec: null, attempts: attempt, model: llm.model, brief, assumptions };
     }
 
     const validation = validateSpec(reply.spec);
@@ -235,8 +268,11 @@ export async function runHarness(
       }
     }
 
+    const assumptionNote = assumptions && assumptions.length ? `\n\n**Assumed (tell me if any should change):** ${assumptions.join(" · ")}` : "";
     const result: HarnessResult = {
-      message: best.message,
+      message: best.message + assumptionNote,
+      brief,
+      assumptions,
       spec: best.spec,
       mesh: best.mesh,
       stl: toBinarySTL(best.mesh, best.spec.name),

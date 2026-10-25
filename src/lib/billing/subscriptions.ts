@@ -11,8 +11,11 @@ import { PLANS } from "@/lib/plans";
 import type { Plan, Prisma, Subscription } from "@prisma/client";
 import { hitpay, todaySGT, type HitpayBilling } from "./hitpay";
 import { appUrl } from "@/lib/utils";
+import { getConfig } from "@/lib/settings";
+import { notify } from "@/lib/email";
+import { renderInvoicePdf } from "./invoice-pdf";
 
-export const CURRENCY = process.env.HITPAY_CURRENCY || "SGD";
+async function currency() { return (await getConfig()).hitpay.currency || "SGD"; }
 
 export function planPrice(plan: Plan) {
   return PLANS[plan].price;
@@ -21,6 +24,7 @@ export function planPrice(plan: Plan) {
 /** Create (once) and cache the HitPay subscription plan for a given plan/price. */
 export async function ensureProviderPlan(plan: Plan) {
   const amount = planPrice(plan);
+  const CURRENCY = await currency();
   const existing = await prisma.providerPlan.findUnique({ where: { provider_plan_amount_currency: { provider: "hitpay", plan, amount, currency: CURRENCY } } });
   if (existing) return existing.providerPlanId;
   const created = await hitpay.createPlan({
@@ -43,7 +47,7 @@ export async function startCheckout(userId: string, plan: Plan) {
 
   const providerPlanId = await ensureProviderPlan(plan);
   const sub = await prisma.subscription.create({
-    data: { userId, plan, amount: planPrice(plan), currency: CURRENCY, providerPlanId, status: "PENDING" },
+    data: { userId, plan, amount: planPrice(plan), currency: await currency(), providerPlanId, status: "PENDING" },
   });
   const billing = await hitpay.createBilling({
     plan_id: providerPlanId,
@@ -83,12 +87,13 @@ export async function syncSubscription(sub: Subscription, remote?: HitpayBilling
   const timesCharged = Number(r.times_charged ?? 0);
   const invoices = await prisma.invoice.count({ where: { subscriptionId: sub.id } });
 
+  const user = await prisma.user.findUnique({ where: { id: sub.userId }, select: { email: true, name: true } });
   // New successful charges → invoices + credits reset.
   for (let n = invoices; n < timesCharged; n++) {
     const periodStart = addMonths(sub.startDate ?? new Date(), n);
     const periodEnd = addMonths(periodStart, 1);
-    await prisma.$transaction(async (tx) => {
-      await tx.invoice.create({
+    const inv = await prisma.$transaction(async (tx) => {
+      const created = await tx.invoice.create({
         data: {
           number: await nextInvoiceNumber(),
           userId: sub.userId,
@@ -104,7 +109,14 @@ export async function syncSubscription(sub: Subscription, remote?: HitpayBilling
       });
       await tx.user.update({ where: { id: sub.userId }, data: { plan: sub.plan, credits: PLANS[sub.plan].credits, creditsResetAt: new Date() } });
       await tx.creditTransaction.create({ data: { userId: sub.userId, delta: PLANS[sub.plan].credits, reason: `subscription-${sub.plan.toLowerCase()}-charge-${n + 1}` } });
+      return created;
     });
+    if (user) {
+      try {
+        const pdf = await renderInvoicePdf(inv, user);
+        notify("invoice", user.email, { name: user.name ?? "there", plan: PLANS[sub.plan].name, invoice_number: inv.number, amount: inv.amount.toFixed(2), currency: inv.currency, period_start: inv.periodStart.toISOString().slice(0, 10), period_end: inv.periodEnd.toISOString().slice(0, 10), paid_at: inv.paidAt.toISOString().slice(0, 10) }, [{ filename: `${inv.number}.pdf`, content: pdf, contentType: "application/pdf" }]);
+      } catch (e) { console.warn("[email] invoice pdf", (e as Error).message); }
+    }
   }
 
   const isActive = status === "active" || (status === "scheduled" && timesCharged > 0) || status === "completed";
@@ -116,6 +128,7 @@ export async function syncSubscription(sub: Subscription, remote?: HitpayBilling
     // Cancel any other active subscription of this user (plan switch).
     await prisma.subscription.updateMany({ where: { userId: sub.userId, status: "ACTIVE", id: { not: sub.id } }, data: { status: "CANCELLED", cancelledAt: new Date(), endsAt: new Date() } });
     await prisma.user.update({ where: { id: sub.userId }, data: { plan: sub.plan } });
+    if (user) notify("subscription_activated", user.email, { name: user.name ?? "there", plan: PLANS[sub.plan].name, credits: PLANS[sub.plan].credits, amount: sub.amount.toFixed(2), currency: sub.currency, next_renewal: periodEnd.toISOString().slice(0, 10) });
   } else if (sub.status === "ACTIVE" && (status === "cancelled" || status === "canceled")) {
     data.status = "CANCELLED";
     data.cancelledAt = sub.cancelledAt ?? new Date();
@@ -137,6 +150,10 @@ export async function cancelSubscription(userId: string, subscriptionId: string)
   const endsAt = sub.status === "PENDING" ? new Date() : sub.currentPeriodEnd ?? addMonths(sub.startDate ?? new Date(), Math.max(sub.timesCharged, 1));
   const updated = await prisma.subscription.update({ where: { id: sub.id }, data: { status: "CANCELLED", cancelledAt: new Date(), endsAt } });
   if (sub.status === "PENDING") await prisma.user.update({ where: { id: userId }, data: { plan: "FREE" } }).catch(() => {});
+  else {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+    if (u) notify("subscription_cancelled", u.email, { name: u.name ?? "there", plan: PLANS[sub.plan].name, ends_at: endsAt.toISOString().slice(0, 10) });
+  }
   return updated;
 }
 
