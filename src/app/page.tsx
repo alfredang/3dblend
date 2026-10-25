@@ -22,7 +22,7 @@ export default async function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-4 pb-8 pt-4 sm:px-6 sm:pt-6">
+      <section className="relative mx-auto max-w-7xl px-4 pb-4 pt-4 sm:px-6 sm:pt-6">
         <div className="mx-auto max-w-3xl text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted">
             <Sparkles className="h-3.5 w-3.5 text-accent-2" /> Powered by DeepSeek V4.1 Flash + an exact geometry kernel
@@ -49,8 +49,8 @@ export default async function Home() {
       </section>
 
       {/* Featured */}
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="mb-5 flex items-end justify-between">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+        <div className="mb-4 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-semibold">Featured models</h2>
             <p className="text-sm text-muted">Community favourites, all generated here and ready to slice.</p>
@@ -67,9 +67,9 @@ export default async function Home() {
       </section>
 
       {/* How it works */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
         <h2 className="text-center text-2xl font-semibold">From words to filament</h2>
-        <div className="mt-6 grid gap-5 md:grid-cols-4">
+        <div className="mt-4 grid gap-4 md:grid-cols-4">
           {[
             { Icon: Wand2, t: "1 · Describe", d: "Tell the agent what you need, including size and purpose. Iterate in plain English." },
             { Icon: Cpu, t: "2 · Agent designs", d: "DeepSeek V4.1 Flash writes a parametric CSG spec; the harness validates and repairs it." },
@@ -83,7 +83,7 @@ export default async function Home() {
             </div>
           ))}
         </div>
-        <div className="card mt-5 flex flex-col items-start gap-4 p-6 md:flex-row md:items-center">
+        <div className="card mt-4 flex flex-col items-start gap-4 p-5 md:flex-row md:items-center">
           <FileCode2 className="h-8 w-8 shrink-0 text-accent" />
           <div className="text-sm text-muted">
             <span className="font-medium text-fg">Blender-native output.</span> Every model ships with a Python script that rebuilds it in Blender with real primitives, booleans and arrays — fully editable, not a frozen mesh. The harness is open source and runs from the CLI too.
@@ -92,19 +92,19 @@ export default async function Home() {
       </section>
 
       {/* Pricing teaser */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
         <h2 className="text-center text-2xl font-semibold">Simple, credit-based pricing</h2>
-        <p className="mt-2 text-center text-sm text-muted">A new model costs {COST.generate} credits; each edit costs {COST.refine} credit.</p>
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
+        <p className="mt-1 text-center text-sm text-muted">A new model costs {COST.generate} credits; each edit costs {COST.refine} credit.</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           {(["FREE", "STARTER", "PRO"] as const).map((k) => {
             const p = PLANS[k];
             return (
-              <div key={k} className={`card p-6 ${k === "STARTER" ? "border-accent/60 shadow-xl shadow-accent/10" : ""}`}>
+              <div key={k} className={`card p-5 ${k === "STARTER" ? "border-accent/60 shadow-xl shadow-accent/10" : ""}`}>
                 <h3 className="font-medium">{p.name}</h3>
                 <div className="mt-2 text-3xl font-semibold">${p.price}<span className="text-sm font-normal text-muted">/{p.period}</span></div>
                 <p className="mt-2 text-sm text-muted">{p.blurb}</p>
-                <ul className="mt-4 space-y-1.5 text-sm">{p.perks.map((x) => <li key={x} className="text-muted">✓ {x}</li>)}</ul>
-                <Link href="/pricing" className={`${k === "STARTER" ? "btn-primary" : "btn-ghost"} mt-6 w-full`}>Choose {p.name}</Link>
+                <ul className="mt-3 space-y-1 text-sm">{p.perks.map((x) => <li key={x} className="text-muted">✓ {x}</li>)}</ul>
+                <Link href="/pricing" className={`${k === "STARTER" ? "btn-primary" : "btn-ghost"} mt-4 w-full`}>Choose {p.name}</Link>
               </div>
             );
           })}

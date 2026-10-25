@@ -6,8 +6,8 @@ import { SITE } from "@/lib/site";
 export function SiteFooter() {
   const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp.replace(/[^0-9]/g, "")}` : null;
   return (
-    <footer id="contact" className="mt-6 border-t border-line/60 bg-elev/40">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-4">
+    <footer id="contact" className="border-t border-line/60 bg-elev/40">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo />
           <p className="mt-3 max-w-md text-sm text-muted">
@@ -38,7 +38,7 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-line/60 py-4 text-center text-xs text-muted">
+      <div className="border-t border-line/60 py-3 text-center text-xs text-muted">
         © {new Date().getFullYear()} 3DBlend · Inspired by Meshy, Tripo and Blender · Gallery models are shared by their authors under CC BY 4.0.
       </div>
     </footer>

@@ -37,11 +37,11 @@ const FAQ: { q: string; a: string }[] = [
 
 export function Faq() {
   return (
-    <section id="faq" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
+    <section id="faq" className="mx-auto w-full max-w-7xl px-4 pb-6 pt-5 sm:px-6">
       <h2 className="text-center text-2xl font-semibold">Frequently asked questions</h2>
-      <div className="mx-auto mt-6 grid max-w-5xl gap-3 md:grid-cols-2">
+      <div className="mx-auto mt-4 grid max-w-5xl gap-2.5 md:grid-cols-2">
         {FAQ.map(({ q, a }) => (
-          <details key={q} className="card group p-5">
+          <details key={q} className="card group px-5 py-3.5">
             <summary className="cursor-pointer list-none font-medium marker:hidden">
               <span className="mr-2 inline-block text-accent transition group-open:rotate-90">▸</span>{q}
             </summary>
