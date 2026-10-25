@@ -28,7 +28,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **FAQ and contact footer** — credits per generation, formats, printers, licensing; contact details come from `src/lib/site.ts`.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
-- **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, monthly top‑ups.
+- **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, monthly top‑ups; the navbar **Dashboard** button opens the account page (or the admin backend for admins).
 - **HitPay subscriptions** — Starter/Pro checkout on HitPay's hosted page (cards, PayNow and more); activation is verified against HitPay's API, every charge auto‑generates a numbered invoice (PDF download from the account page) and resets credits; users can cancel anytime and keep access until the paid period ends; a daily reconciliation keeps subscriptions in sync even if a webhook is missed.
 - **Remix attribution** — remixing a gallery model records the original (`remixOfId`) and a "Title by Author" snapshot that every later version inherits; shown on the share page, in the studio, on gallery cards and inside the 3MF metadata (CC BY 4.0).
 - **Visibility by plan** — Free‑plan models are always public in the gallery; Starter and Pro models are private until the owner publishes them (`defaultVisibility` / `canMakePrivate` in `src/lib/plans.ts`).
@@ -119,7 +119,7 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `DEEPSEEK_MODEL` | | default `deepseek-flash` (= DeepSeek‑V4.1‑Flash) |
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
 | `AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
-| `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL` | ✅ | public URL (share links, Stripe redirects) |
+| `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL` | ✅ | public URL (share links, HitPay redirect and webhook URLs, email links) |
 | `STORAGE_DIR` | | where STL / .py files live (`/data/storage` in Docker, mount a volume) |
 | `HITPAY_API_KEY`, `HITPAY_SALT`, `HITPAY_WEBHOOK_SALT`, `HITPAY_SANDBOX`, `HITPAY_CURRENCY` | | enable paid upgrades via HitPay recurring billing (sandbox with `HITPAY_SANDBOX=1`); without a key the UI shows “Coming soon” |
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
@@ -138,7 +138,7 @@ The production instance was created through the Coolify API; the same steps work
 5. On every boot the entrypoint runs `prisma db push` so the schema is always in sync; sample models are seeded on the first page view.
 6. Optional: a Coolify *Scheduled Task* that runs daily:
    `curl -fsS -H "x-cron-secret: $CRON_SECRET" https://3dblend.tertiaryinfotech.com/api/cron/reset-credits`
-7. Optional: point a Stripe webhook at `https://3dblend.tertiaryinfotech.com/api/billing/webhook` for `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`.
+7. SMTP for transactional email can be set in Admin → Integrations (or via the `SMTP_*` variables); use the test buttons there to verify DeepSeek, HitPay and SMTP after deploying.
 
 Local run of the same stack: `docker compose -f docker-compose.yml -f docker-compose.local.yml up --build` (the override publishes port 3000).
 
