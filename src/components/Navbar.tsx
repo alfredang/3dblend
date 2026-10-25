@@ -21,7 +21,6 @@ export async function Navbar() {
             <Link href="/gallery" className="hover:text-fg">Gallery</Link>
             <Link href="/pricing" className="hover:text-fg">Pricing</Link>
             <Link href="/studio" className="hover:text-fg">Studio</Link>
-            {user?.isAdmin && <Link href="/admin" className="text-accent-2 hover:text-fg">Admin</Link>}
           </nav>
         </div>
         <div className="flex items-center gap-3">
