@@ -19,7 +19,7 @@ export default async function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pt-12">
+      <section className="relative mx-auto max-w-7xl px-4 pb-8 pt-4 sm:px-6 sm:pt-6">
         <div className="mx-auto max-w-3xl text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted">
             <Sparkles className="h-3.5 w-3.5 text-accent-2" /> Powered by DeepSeek V4.1 Flash + an exact geometry kernel

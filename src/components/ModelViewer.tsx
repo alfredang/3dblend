@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Canvas, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, ContactShadows, Center } from "@react-three/drei";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
@@ -19,6 +19,22 @@ function Mesh({ url, color }: { url: string; color: string }) {
       <meshStandardMaterial color={color} roughness={0.45} metalness={0.05} />
     </mesh>
   );
+}
+
+function useThemeColors() {
+  const readColors = () => {
+    const cs = getComputedStyle(document.documentElement);
+    return { bg: cs.getPropertyValue("--viewer-bg").trim() || "#0b0d14", cell: cs.getPropertyValue("--grid-cell").trim() || "#2a2f3f", section: cs.getPropertyValue("--grid-section").trim() || "#3a4160" };
+  };
+  const [colors, setColors] = useState({ bg: "#0b0d14", cell: "#2a2f3f", section: "#3a4160" });
+  useEffect(() => {
+    const update = () => setColors(readColors());
+    update();
+    const mo = new MutationObserver(update);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
+  return colors;
 }
 
 export function ModelViewer({
@@ -42,6 +58,7 @@ export function ModelViewer({
   // Render the WebGL canvas only on the client (no SSR markup for it).
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const radius = useMemo(() => (size ? Math.max(Math.hypot(...size) * 0.9, 20) : 100), [size]);
+  const theme = useThemeColors();
 
   if (!mounted) return <div className={className} />;
   return (
@@ -53,7 +70,7 @@ export function ModelViewer({
         camera={{ position: [radius * 1.1, radius * 0.8, radius * 1.1], fov: 40, near: 0.1, far: radius * 50 }}
         gl={{ antialias: true, preserveDrawingBuffer: true }}
       >
-        <color attach="background" args={["#0b0d14"]} />
+        <color attach="background" args={[theme.bg]} />
         <hemisphereLight args={["#cfd6ff", "#1a1530", 0.9]} />
         <ambientLight intensity={0.25} />
         <directionalLight position={[radius, radius * 1.5, radius]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
@@ -69,8 +86,8 @@ export function ModelViewer({
           args={[radius * 4, radius * 4]}
           cellSize={10}
           sectionSize={50}
-          cellColor="#2a2f3f"
-          sectionColor="#3a4160"
+          cellColor={theme.cell}
+          sectionColor={theme.section}
           fadeDistance={radius * 4}
           infiniteGrid
         />

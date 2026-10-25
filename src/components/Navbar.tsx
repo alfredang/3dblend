@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Logo } from "./Logo";
 import { Coins } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
+import { ThemeToggle } from "./ThemeToggle";
 
 export async function Navbar() {
   const session = await auth();
@@ -23,6 +24,7 @@ export async function Navbar() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {user ? (
             <>
               <Link href="/account" className="glass hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs sm:flex">

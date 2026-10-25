@@ -10,6 +10,24 @@
   --accent: #7c5cff;
   --accent-2: #19d3c5;
   --accent-3: #ff7a59;
+  --viewer-bg: #0b0d14;
+  --grid-cell: #2a2f3f;
+  --grid-section: #3a4160;
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f6fa;
+  --bg-elev: #ffffff;
+  --bg-card: #ffffff;
+  --border: #e3e6ef;
+  --fg: #11142a;
+  --muted: #5e6578;
+  --accent: #6b4cff;
+  --accent-2: #0fae9f;
+  --accent-3: #e2562f;
+  --viewer-bg: #eef0f6;
+  --grid-cell: #d6dae6;
+  --grid-section: #b9bfd3;
 }
 
 @theme inline {
@@ -27,6 +45,7 @@
 }
 
 html { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 body {
   background: var(--bg);
   color: var(--fg);
@@ -35,6 +54,11 @@ body {
     radial-gradient(900px 500px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
     radial-gradient(700px 400px at 100% 0%, rgba(25, 211, 197, 0.12), transparent 60%);
   background-attachment: fixed;
+}
+:root[data-theme="light"] body {
+  background-image:
+    radial-gradient(900px 500px at 10% -10%, rgba(107, 76, 255, 0.10), transparent 60%),
+    radial-gradient(700px 400px at 100% 0%, rgba(15, 174, 159, 0.08), transparent 60%);
 }
 
 .glass {
@@ -53,7 +77,7 @@ body {
 }
 .btn-primary { @apply text-white; background: linear-gradient(90deg, var(--accent), #5b8cff); }
 .btn-primary:hover { filter: brightness(1.1); }
-.btn-ghost { @apply border border-line text-fg hover:bg-white/5; }
+.btn-ghost { @apply border border-line text-fg hover:bg-fg/5; }
 .input {
   @apply w-full rounded-xl border border-line bg-elev px-3 py-2 text-sm text-fg placeholder:text-muted outline-none focus:border-accent;
 }
@@ -61,6 +85,6 @@ body {
 .prose-chat :is(p, ul, ol) { margin: 0.35rem 0; }
 .prose-chat ul { padding-left: 1.1rem; list-style: disc; }
 .prose-chat strong { color: var(--fg); }
-.prose-chat code { @apply rounded bg-white/10 px-1 py-0.5 text-[0.85em]; }
+.prose-chat code { @apply rounded bg-fg/10 px-1 py-0.5 text-[0.85em]; }
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #2a2f3f; border-radius: 8px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: var(--grid-cell); border-radius: 8px; }

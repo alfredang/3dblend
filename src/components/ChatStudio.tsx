@@ -205,7 +205,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 )}
                 <Markdown text={m.content} />
                 {m.modelId && (
-                  <button onClick={() => setCurrent(models.find((x) => x.id === m.modelId) ?? null)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs text-accent-2 hover:bg-white/5">
+                  <button onClick={() => setCurrent(models.find((x) => x.id === m.modelId) ?? null)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs text-accent-2 hover:bg-fg/5">
                     <Sparkles className="h-3 w-3" /> View this version
                   </button>
                 )}
@@ -233,7 +233,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                   <span className="inline-grid h-14 w-14 place-items-center rounded-lg border border-line bg-card"><FileText className="h-6 w-6 text-accent-3" /></span>
                 )}
                 <span className="truncate text-xs text-muted">{attachment.name}</span>
-                <button type="button" onClick={() => setAttachment(null)} className="ml-auto rounded-full p-1 text-muted hover:bg-white/10 hover:text-fg" aria-label="Remove attachment"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setAttachment(null)} className="ml-auto rounded-full p-1 text-muted hover:bg-fg/10 hover:text-fg" aria-label="Remove attachment"><X className="h-4 w-4" /></button>
               </div>
             )}
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden" onChange={onPickFile} />
@@ -270,14 +270,14 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
               <div className="pointer-events-auto">
                 <button onClick={() => setShowVersions((v) => !v)} className="glass inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm">
                   <span className="font-medium">{current.title}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-muted">v{current.version}</span>
+                  <span className="rounded-full bg-fg/10 px-2 py-0.5 text-xs text-muted">v{current.version}</span>
                   {models.length > 1 && <ChevronDown className="h-4 w-4 text-muted" />}
                 </button>
                 {showVersions && models.length > 1 && (
                   <ul className="glass mt-2 w-72 overflow-hidden rounded-xl text-sm">
                     {[...models].reverse().map((m) => (
                       <li key={m.id}>
-                        <button onClick={() => { setCurrent(m); setShowVersions(false); }} className={cn("flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/5", m.id === current.id && "text-accent")}>
+                        <button onClick={() => { setCurrent(m); setShowVersions(false); }} className={cn("flex w-full items-center justify-between px-3 py-2 text-left hover:bg-fg/5", m.id === current.id && "text-accent")}>
                           <span className="truncate">{m.title}</span><span className="text-xs text-muted">v{m.version}</span>
                         </button>
                       </li>
