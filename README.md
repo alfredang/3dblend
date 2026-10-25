@@ -23,6 +23,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **3MF export** — on‑demand `.3mf` (units, indexed mesh, metadata) for Bambu Studio, PrusaSlicer and Cura, derived from the stored STL and cached.
 - **Blender‑friendly export** — a `.blender.py` per model that recreates the design with `bmesh` primitives, EXACT booleans, arrays and mirrors, in millimetres, sitting on the build plate.
 - **3D viewer** — React Three Fiber, orbit/zoom, auto‑rotate, grid and contact shadows.
+- **FAQ and contact footer** — credits per generation, formats, printers, licensing; contact details come from `src/lib/site.ts`.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
 - **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, Stripe subscription checkout + webhook (optional), monthly top‑up cron endpoint.

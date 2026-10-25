@@ -6,6 +6,8 @@ import { ModelCard } from "@/components/ModelCard";
 import { HeroPrompt } from "@/components/HeroPrompt";
 import { PLANS } from "@/lib/plans";
 import { ensureSeeded } from "@/lib/seed";
+import { Faq } from "@/components/Faq";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +49,8 @@ export default async function Home() {
       </section>
 
       {/* Featured */}
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="mb-6 flex items-end justify-between">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+        <div className="mb-5 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-semibold">Featured models</h2>
             <p className="text-sm text-muted">Community favourites, all generated here and ready to slice.</p>
@@ -65,9 +67,9 @@ export default async function Home() {
       </section>
 
       {/* How it works */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <h2 className="text-center text-2xl font-semibold">From words to filament</h2>
-        <div className="mt-10 grid gap-5 md:grid-cols-4">
+        <div className="mt-6 grid gap-5 md:grid-cols-4">
           {[
             { Icon: Wand2, t: "1 · Describe", d: "Tell the agent what you need, including size and purpose. Iterate in plain English." },
             { Icon: Cpu, t: "2 · Agent designs", d: "DeepSeek V4.1 Flash writes a parametric CSG spec; the harness validates and repairs it." },
@@ -81,7 +83,7 @@ export default async function Home() {
             </div>
           ))}
         </div>
-        <div className="card mt-6 flex flex-col items-start gap-4 p-6 md:flex-row md:items-center">
+        <div className="card mt-5 flex flex-col items-start gap-4 p-6 md:flex-row md:items-center">
           <FileCode2 className="h-8 w-8 shrink-0 text-accent" />
           <div className="text-sm text-muted">
             <span className="font-medium text-fg">Blender-native output.</span> Every model ships with a Python script that rebuilds it in Blender with real primitives, booleans and arrays — fully editable, not a frozen mesh. The harness is open source and runs from the CLI too.
@@ -90,10 +92,10 @@ export default async function Home() {
       </section>
 
       {/* Pricing teaser */}
-      <section className="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <h2 className="text-center text-2xl font-semibold">Simple, credit-based pricing</h2>
         <p className="mt-2 text-center text-sm text-muted">One credit = one generation or refinement.</p>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+        <div className="mt-6 grid gap-5 md:grid-cols-3">
           {(["FREE", "STARTER", "PRO"] as const).map((k) => {
             const p = PLANS[k];
             return (
@@ -109,12 +111,8 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-line/60 py-8 text-center text-xs text-muted">
-        <p>© {new Date().getFullYear()} 3DBlend · Inspired by Meshy, Tripo and Blender · Models are released by their authors under CC BY 4.0 unless stated otherwise.</p>
-        <p className="powered-by mt-2">
-          Powered by <a href="https://www.tertiaryinfotech.com/" target="_blank" rel="noopener" className="text-accent hover:underline">Tertiary Infotech Academy Pte Ltd</a>
-        </p>
-      </footer>
+      <Faq />
+      <SiteFooter />
     </div>
   );
 }
