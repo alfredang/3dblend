@@ -90,6 +90,7 @@ Key files:
 | `src/lib/attachments.ts` | Attachments: images, PDF text + first‑page render, STL/3MF import, Blender‑script spec recovery |
 | `src/agent/meshio.ts` | STL (ASCII/binary) and 3MF parsers, spec extraction from exported Blender scripts |
 | `src/agent/prompts.ts` | System prompt with the DSL reference and FDM design rules |
+| `scripts/push-models.ts` | Sync local models to another instance through the admin import API |
 | `scripts/agent-cli.ts` | `npm run agent -- "a hex pencil cup"` → `out/*.stl`, `*.blender.py`, `*.spec.json` |
 
 > **Why non‑thinking mode?** DeepSeek V4.x in thinking mode spends its entire token budget reasoning about geometry and returns empty content for anything non‑trivial. The harness supplies the verification loop instead, and direct mode answers in ~3 s. Set `DEEPSEEK_THINKING=1` to opt back in.
@@ -107,6 +108,12 @@ npm run dev                     # http://localhost:3000
 ```
 
 Demo login: `demo@3dblend.app` / `demo1234` (Pro plan, 1000 credits). With `SEED_ADMIN_PASSWORD` / `SEED_TEST_PASSWORD` set, `admin@3dblend.app` and `test@3dblend.app` are also available (passwords from the env).
+
+Move models between instances (for example local → production); the target rebuilds each model from its spec and skips ones it already has:
+
+```bash
+TARGET_URL=https://3dblend.tertiaryinfotech.com ADMIN_PASSWORD=... npm run push-models
+```
 
 Try the harness without the web app:
 
@@ -173,6 +180,7 @@ Health check: `GET /api/health`.
 | `/api/billing/cancel`, `/api/billing/sync` | POST | cancel at HitPay / re-check status |
 | `/api/invoices/:id/pdf` | GET | invoice PDF (owner or admin) |
 | `/api/admin/users`, `/api/admin/models`, `/api/admin/subscriptions` | PATCH/DELETE | admin actions |
+| `/api/admin/models/import` | POST | admin bulk import: rebuild models from specs (used by `npm run push-models`) |
 | `/api/admin/settings`, `/api/admin/settings/test`, `/api/admin/email-templates`, `/api/admin/email-templates/test` | GET/PUT/POST | integrations and email templates |
 | `/api/cron/reset-credits` | GET | monthly credit top‑up (secret header) |
 | `/api/health` | GET | DB connectivity |
