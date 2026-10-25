@@ -18,6 +18,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build" AUTH_SECRET="build-time-secret"
 RUN npx prisma generate && npm run build
 
+# ---- prisma cli (self-contained, for the boot-time schema sync) ----
+FROM node:22-alpine AS prisma-cli
+WORKDIR /opt/prisma
+RUN apk add --no-cache libc6-compat openssl && npm init -y >/dev/null && npm i prisma@6.19.3 --no-audit --no-fund
+
 # ---- runtime ----
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -26,13 +31,13 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 STO
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-# Prisma CLI + schema so the entrypoint can sync the database on boot.
+# Generated Prisma client + engines for the app, and a self-contained Prisma CLI
+# (with its own node_modules) so the entrypoint can sync the schema on boot.
 COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder /app/node_modules/manifold-3d ./node_modules/manifold-3d
+COPY --from=prisma-cli /opt/prisma/node_modules /opt/prisma/node_modules
 COPY docker-entrypoint.sh ./
 RUN mkdir -p /data/storage && chown -R app:app /data /app && chmod +x docker-entrypoint.sh
 USER app
