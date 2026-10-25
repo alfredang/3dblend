@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { spendCredits, refundCredits, InsufficientCreditsError } from "@/lib/credits";
-import { COST, defaultVisibility } from "@/lib/plans";
+import { COST, defaultVisibility, canAttach } from "@/lib/plans";
 import { saveFile } from "@/lib/storage";
 import { runHarness, type HistoryItem, type Spec } from "@/agent";
 import { createDeepSeekClient } from "@/agent/llm";
@@ -45,6 +45,9 @@ export async function POST(req: Request) {
   });
   if (!project) return new Response("Not found", { status: 404 });
   const isPublicByPlan = defaultVisibility(project.user.plan);
+  if (attachment && !canAttach(project.user.plan)) {
+    return new Response(JSON.stringify({ error: "Reference images and PDFs are available on Starter and Pro. Upgrade to attach files." }), { status: 403, headers: { "content-type": "application/json" } });
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -120,6 +123,8 @@ export async function POST(req: Request) {
         });
 
         let modelId: string | undefined;
+        // A question-only reply (no new model) costs the chat rate, not the generation rate.
+        if (!result.spec && cost > COST.chat) await refundCredits(userId, cost - COST.chat, "chat-only-adjust");
         if (result.spec && result.stl && result.blender && result.report && result.mesh) {
           const version = project.messages.filter((m) => m.modelId).length + 1;
           const model = await prisma.model.create({

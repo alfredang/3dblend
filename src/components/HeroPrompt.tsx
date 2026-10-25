@@ -41,7 +41,7 @@ export function HeroPrompt({ signedIn }: { signedIn: boolean }) {
           />
         </div>
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-3">
-          <button type="button" onClick={() => router.push(signedIn ? "/studio" : "/register?next=/studio")} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted hover:border-accent hover:text-fg" title="Attach a reference image or PDF in the studio">
+          <button type="button" onClick={() => router.push(signedIn ? "/studio" : "/register?next=/studio")} className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-muted hover:border-accent hover:text-fg" title="Attach a reference image or PDF in the studio (Starter and Pro)">
             <Plus className="h-4 w-4" /> Image / PDF reference
           </button>
           <div className="flex items-center gap-3">

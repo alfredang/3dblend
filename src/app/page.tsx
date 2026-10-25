@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { listPublicModels } from "@/lib/models";
 import { ModelCard } from "@/components/ModelCard";
 import { HeroPrompt } from "@/components/HeroPrompt";
-import { PLANS } from "@/lib/plans";
+import { PLANS, COST } from "@/lib/plans";
 import { ensureSeeded } from "@/lib/seed";
 import { Faq } from "@/components/Faq";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -94,7 +94,7 @@ export default async function Home() {
       {/* Pricing teaser */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <h2 className="text-center text-2xl font-semibold">Simple, credit-based pricing</h2>
-        <p className="mt-2 text-center text-sm text-muted">One credit = one generation or refinement.</p>
+        <p className="mt-2 text-center text-sm text-muted">A new model costs {COST.generate} credits; each edit costs {COST.refine} credit.</p>
         <div className="mt-6 grid gap-5 md:grid-cols-3">
           {(["FREE", "STARTER", "PRO"] as const).map((k) => {
             const p = PLANS[k];

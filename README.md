@@ -2,7 +2,7 @@
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js) ![React](https://img.shields.io/badge/React-19-61dafb?logo=react) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql) ![Prisma](https://img.shields.io/badge/Prisma-6-2d3748?logo=prisma) ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek%20V4.1%20Flash-4b5cff) ![Manifold](https://img.shields.io/badge/Geometry-Manifold%20(WASM)-19d3c5) ![Docker](https://img.shields.io/badge/Deploy-Coolify%20%2F%20Docker-2496ed?logo=docker)
 
-Describe an object in the chat, get back a **watertight, printable STL** plus a **Blender Python script** that rebuilds it with native primitives and booleans. Preview it in 3D, refine it in conversation, publish it to a gallery with likes and social sharing, and download it. Credit‑based plans: Free (10 credits), Starter (100/month), Pro (1000/month).
+Describe an object in the chat, get back a **watertight, printable STL** plus a **Blender Python script** that rebuilds it with native primitives and booleans. Preview it in 3D, refine it in conversation, publish it to a gallery with likes and social sharing, and download it. Credit‑based plans: Free (10 credits), Starter (100/month), Pro (1000/month); a new model costs 5 credits, each edit 1 (Free = one model plus five edits, text only).
 
 Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 
@@ -15,7 +15,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 ## Features
 
 - **Chat‑to‑STL studio** — large multi‑line composer (Enter for a new line, ⌘/Ctrl+Enter to send) with streaming status while the agent designs, builds, checks, repairs and optimises the model; every version is kept and switchable.
-- **Reference images and PDFs** — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
+- **Reference images and PDFs** (Starter/Pro) — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
 - **Print optimisation pass** — when a build passes but carries warnings (overhangs, thin walls, flat ceilings, loose pieces) the harness asks the agent for a print‑friendlier version and keeps whichever scores better.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
 - **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).

@@ -6,6 +6,7 @@ import { Send, Download, FileCode2, Globe, Lock, Loader2, Coins, Sparkles, Chevr
 import { ModelViewer } from "./ModelViewer";
 import { Markdown } from "./Markdown";
 import { cn, colorFor } from "@/lib/utils";
+import { COST } from "@/lib/plans";
 import { PrintSetupBar, usePrintSetup } from "./PrintSetup";
 
 export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null; imageUrl?: string; attachmentName?: string }
@@ -75,6 +76,8 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const canAttachFiles = plan !== "FREE";
+
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     e.target.value = "";
@@ -109,7 +112,12 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
 
     try {
       const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ projectId: project.id, message: content, setup, attachment: att ? { name: att.name, type: att.type, data: att.data } : undefined }) });
-      if (!res.ok || !res.body) throw new Error(await res.text());
+      if (!res.ok || !res.body) {
+        const text = await res.text();
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch { /* plain text */ }
+        throw new Error(msg || `Request failed (${res.status})`);
+      }
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -251,10 +259,10 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
             />
             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="inline-grid h-9 w-9 place-items-center rounded-full border border-line text-muted hover:border-accent hover:text-fg" title="Attach a reference image or PDF" aria-label="Attach a reference image or PDF">
+                <button type="button" onClick={() => (canAttachFiles ? fileRef.current?.click() : setError("Reference images and PDFs are available on Starter and Pro. Upgrade to attach files."))} disabled={busy} className={cn("inline-grid h-9 w-9 place-items-center rounded-full border border-line text-muted hover:border-accent hover:text-fg", !canAttachFiles && "opacity-60")} title={canAttachFiles ? "Attach a reference image or PDF" : "Image/PDF references are a Starter/Pro feature"} aria-label="Attach a reference image or PDF">
                   <Plus className="h-4 w-4" />
                 </button>
-                <span className="hidden text-[11px] text-muted sm:inline">Enter for a new line · ⌘/Ctrl+Enter to send · 1 credit per turn · {plan}</span>
+                <span className="hidden text-[11px] text-muted sm:inline">Enter for a new line · ⌘/Ctrl+Enter to send · {models.length ? `${COST.refine} credit per edit` : `${COST.generate} credits per new model`} · {plan}</span>
               </div>
               <button className="btn-primary h-9 w-9 !rounded-full !p-0" disabled={busy || (!input.trim() && !attachment)} aria-label="Send">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -337,7 +345,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                       onClick={() => send(`Fix these printability problems and keep everything else the same:\n${[...(s.errors ?? []), ...(s.warnings ?? [])].map((e) => `- ${e}`).join("\n")}\nMake sure every part overlaps its neighbour by at least 1 mm so the model is one connected solid, and that the largest flat face sits at the lowest point.`)}
                       className="btn-ghost mt-1 !px-3 !py-1.5 text-xs text-accent-3 border-accent-3/40"
                     >
-                      <AlertTriangle className="h-3.5 w-3.5" /> Ask the agent to fix these (1 credit)
+                      <AlertTriangle className="h-3.5 w-3.5" /> Ask the agent to fix these ({COST.refine} credit)
                     </button>
                   )}
                 </div>

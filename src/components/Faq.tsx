@@ -3,11 +3,11 @@ import { COST, PLANS } from "@/lib/plans";
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How many credits does one model cost?",
-    a: `One generation costs ${COST.generate} credit and each refinement (“make the walls thicker”, “add a lid”) costs ${COST.refine} credit, no matter how many internal repair or optimisation passes the agent runs. A typical model takes 2–4 credits: one generation plus a couple of tweaks. Replies where the agent only answers a question also cost 1 credit, and a failed generation is refunded automatically.`,
+    a: `Generating a new model costs ${COST.generate} credits. Each edit of that model (“make the walls thicker”, “add a lid”) costs ${COST.refine} credit, no matter how many internal repair or optimisation passes the agent runs. A typical finished model takes ${COST.generate + 2}–${COST.generate + 4} credits: one generation plus a few tweaks. A reply where the agent only answers a question costs ${COST.chat} credit, and a failed generation is refunded automatically.`,
   },
   {
     q: "What do the plans include?",
-    a: `Free gives ${PLANS.FREE.credits} credits once. Starter gives ${PLANS.STARTER.credits} credits a month and Pro ${PLANS.PRO.credits} credits a month, resetting each billing cycle. Unused monthly credits do not roll over.`,
+    a: `Free gives ${PLANS.FREE.credits} credits once: one model plus five edits, text prompts only. Starter gives ${PLANS.STARTER.credits} credits a month and Pro ${PLANS.PRO.credits} credits a month, resetting each billing cycle. Unused monthly credits do not roll over.`,
   },
   {
     q: "Are my models private?",
@@ -23,7 +23,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I design from a photo or a drawing?",
-    a: "Yes. Use the + button in the studio to attach a JPEG/PNG image or a PDF. The agent reads the silhouette, proportions and any labelled dimensions and turns them into a printable solid.",
+    a: "Yes, on Starter and Pro. Use the + button in the studio to attach a JPEG/PNG image or a PDF. The agent reads the silhouette, proportions and any labelled dimensions and turns them into a printable solid. The Free plan is text prompts only.",
   },
   {
     q: "Which printers are supported?",

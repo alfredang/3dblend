@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PLANS } from "@/lib/plans";
+import { PLANS, COST } from "@/lib/plans";
 import { UpgradeButton } from "@/components/UpgradeButton";
 
 export const metadata = { title: "Pricing" };
@@ -14,7 +14,7 @@ export default async function PricingPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
       <h1 className="text-center text-4xl font-semibold">Pricing</h1>
-      <p className="mt-3 text-center text-muted">One credit = one generation or one refinement. Unused monthly credits reset each cycle.</p>
+      <p className="mt-3 text-center text-muted">A new model costs {COST.generate} credits and each edit costs {COST.refine} credit. Unused monthly credits reset each cycle.</p>
       <div className="mt-12 grid gap-6 md:grid-cols-3">
         {(["FREE", "STARTER", "PRO"] as const).map((k) => {
           const p = PLANS[k];
@@ -43,7 +43,7 @@ export default async function PricingPage() {
       {!billingReady && <p className="mt-8 text-center text-xs text-muted">Payments go live once Stripe keys are configured in the environment.</p>}
       <div className="card mt-14 grid gap-6 p-8 md:grid-cols-3">
         {[
-          ["What is a credit?", "Each time the agent designs or modifies a model you spend one credit — regardless of how many repair iterations the harness needs internally."],
+          ["What is a credit?", `Generating a new model costs ${COST.generate} credits and each edit of an existing model costs ${COST.refine} credit, regardless of how many repair or optimisation passes the harness runs internally. A question-only reply costs ${COST.chat} credit and failed generations are refunded.`],
           ["Who owns the models, and are they private?", "You own them. Free-plan models are shared publicly in the gallery; Starter and Pro models stay private unless you publish them. Pro adds a commercial licence. Gallery models are shared under CC BY 4.0."],
           ["Can I cancel?", "Any time. You keep your remaining credits until the end of the billing cycle, then drop back to the free tier."],
         ].map(([q, a]) => (
