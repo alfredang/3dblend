@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx --tsconfig tsconfig.json prisma/seed.ts",
-    "agent": "tsx scripts/agent-cli.ts"
+    "agent": "tsx scripts/agent-cli.ts",
+    "push-models": "tsx --tsconfig tsconfig.json scripts/push-models.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.13",

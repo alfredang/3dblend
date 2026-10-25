@@ -13,19 +13,6 @@ export function SiteFooter() {
           <p className="mt-3 max-w-md text-sm text-muted">
             Describe an object, attach a sketch or a drawing, and get a watertight, printer-ready STL, 3MF and Blender script in seconds. Built on DeepSeek V4.1 Flash and an exact geometry kernel.
           </p>
-          <p className="mt-3 text-xs text-muted">
-            Powered by <a href={SITE.website} target="_blank" rel="noopener" className="text-accent hover:underline">{SITE.company}</a> · UEN {SITE.uen}
-          </p>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold">Contact</h3>
-          <ul className="mt-3 space-y-2 text-sm text-muted">
-            {SITE.email && <li><a href={`mailto:${SITE.email}`} className="inline-flex items-center gap-2 hover:text-fg"><Mail className="h-4 w-4 text-accent-2" />{SITE.email}</a></li>}
-            {SITE.phone && <li><a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 hover:text-fg"><Phone className="h-4 w-4 text-accent-2" />{SITE.phone}</a></li>}
-            {wa && <li><a href={wa} target="_blank" rel="noopener" className="inline-flex items-center gap-2 hover:text-fg"><MessageCircle className="h-4 w-4 text-accent-2" />WhatsApp {SITE.whatsapp}</a></li>}
-            {SITE.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent-2" /><span>{SITE.address}</span></li>}
-            <li><a href={SITE.github} target="_blank" rel="noopener" className="inline-flex items-center gap-2 hover:text-fg"><Code2 className="h-4 w-4 text-accent-2" />Source on GitHub</a></li>
-          </ul>
         </div>
         <div>
           <h3 className="text-sm font-semibold">Product</h3>
@@ -37,9 +24,20 @@ export function SiteFooter() {
             <li><Link href="/register" className="hover:text-fg">Start free</Link></li>
           </ul>
         </div>
+        <div>
+          <h3 className="text-sm font-semibold">Contact</h3>
+          <ul className="mt-3 space-y-2 text-sm text-muted">
+            {SITE.email && <li><a href={`mailto:${SITE.email}`} className="inline-flex items-center gap-2 hover:text-fg"><Mail className="h-4 w-4 text-accent-2" />{SITE.email}</a></li>}
+            {SITE.phone && <li><a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-2 hover:text-fg"><Phone className="h-4 w-4 text-accent-2" />{SITE.phone}</a></li>}
+            {wa && <li><a href={wa} target="_blank" rel="noopener" className="inline-flex items-center gap-2 hover:text-fg"><MessageCircle className="h-4 w-4 text-accent-2" />WhatsApp {SITE.whatsapp}</a></li>}
+            {SITE.address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent-2" /><span>{SITE.address}</span></li>}
+            <li><a href={SITE.github} target="_blank" rel="noopener" className="inline-flex items-center gap-2 hover:text-fg"><Code2 className="h-4 w-4 text-accent-2" />Source on GitHub</a></li>
+          </ul>
+        </div>
       </div>
-      <div className="border-t border-line/60 py-3 text-center text-xs text-muted">
-        © {new Date().getFullYear()} 3DBlend · Inspired by Meshy, Tripo and Blender · Gallery models are shared by their authors under CC BY 4.0.
+      <div className="flex flex-col items-center justify-between gap-1 border-t border-line/60 px-4 py-3 text-center text-xs text-muted sm:flex-row sm:px-6 sm:text-left">
+        <span>© {new Date().getFullYear()} 3DBlend</span>
+        <p className="powered-by">Powered by <a href={SITE.website} target="_blank" rel="noopener" className="text-accent hover:underline">{SITE.company}</a> · UEN {SITE.uen}</p>
       </div>
     </footer>
   );
