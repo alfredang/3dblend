@@ -99,12 +99,12 @@ export default async function Home() {
           {(["FREE", "STARTER", "PRO"] as const).map((k) => {
             const p = PLANS[k];
             return (
-              <div key={k} className={`card p-5 ${k === "STARTER" ? "border-accent/60 shadow-xl shadow-accent/10" : ""}`}>
+              <div key={k} className={`card flex flex-col p-5 ${k === "STARTER" ? "border-accent/60 shadow-xl shadow-accent/10" : ""}`}>
                 <h3 className="font-medium">{p.name}</h3>
                 <div className="mt-2 text-3xl font-semibold">${p.price}<span className="text-sm font-normal text-muted">/{p.period}</span></div>
                 <p className="mt-2 text-sm text-muted">{p.blurb}</p>
-                <ul className="mt-3 space-y-1 text-sm">{p.perks.map((x) => <li key={x} className="text-muted">✓ {x}</li>)}</ul>
-                <Link href="/pricing" className={`${k === "STARTER" ? "btn-primary" : "btn-ghost"} mt-4 w-full`}>Choose {p.name}</Link>
+                <ul className="mb-4 mt-3 flex-1 space-y-1 text-sm">{p.perks.map((x) => <li key={x} className="text-muted">✓ {x}</li>)}</ul>
+                <Link href="/pricing" className={`${k === "STARTER" ? "btn-primary" : "btn-ghost"} w-full`}>Choose {p.name}</Link>
               </div>
             );
           })}

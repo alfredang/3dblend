@@ -20,14 +20,14 @@ export default async function PricingPage() {
           const p = PLANS[k];
           const isCurrent = user?.plan === k;
           return (
-            <div key={k} className={`card relative p-7 ${k === "STARTER" ? "border-accent/60 shadow-2xl shadow-accent/10" : ""}`}>
+            <div key={k} className={`card relative flex flex-col p-7 ${k === "STARTER" ? "border-accent/60 shadow-2xl shadow-accent/10" : ""}`}>
               {k === "STARTER" && <span className="absolute -top-3 left-6 rounded-full bg-gradient-to-r from-accent to-accent-2 px-3 py-1 text-xs font-semibold text-white">Most popular</span>}
               <h2 className="text-lg font-medium">{p.name}</h2>
               <div className="mt-3 text-4xl font-semibold">${p.price}<span className="text-base font-normal text-muted">/{p.period}</span></div>
               <div className="mt-1 text-sm text-accent-2">{p.credits} credits{k === "FREE" ? "" : " / month"}</div>
               <p className="mt-3 text-sm text-muted">{p.blurb}</p>
-              <ul className="mt-5 space-y-2 text-sm">{p.perks.map((x) => <li key={x} className="flex gap-2 text-muted"><span className="text-accent-2">✓</span>{x}</li>)}</ul>
-              <div className="mt-7">
+              <ul className="mt-5 flex-1 space-y-2 text-sm">{p.perks.map((x) => <li key={x} className="flex gap-2 text-muted"><span className="text-accent-2">✓</span>{x}</li>)}</ul>
+              <div className="mt-6">
                 {isCurrent ? (
                   <div className="btn-ghost w-full cursor-default">Current plan</div>
                 ) : k === "FREE" ? (
