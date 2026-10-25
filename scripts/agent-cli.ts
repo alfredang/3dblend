@@ -21,6 +21,7 @@ async function main() {
       if (e.type === "status") console.log(`• ${e.text}`);
       if (e.type === "validation" && !e.ok) console.log("  ✗ spec:", e.errors.join(" | "));
       if (e.type === "build") console.log(e.ok ? `  ✓ built ${e.triangles} triangles` : `  ✗ build: ${e.error}`);
+      if (e.type === "optimize") console.log(`  ⟳ optimise: score ${e.before.toFixed(1)} → ${e.after.toFixed(1)} (${e.kept})`);
       if (e.type === "print") console.log(`  ${e.report.ok ? "✓" : "✗"} print`, JSON.stringify(e.report.metrics), e.report.errors, e.report.warnings);
     },
   });

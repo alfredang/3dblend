@@ -57,6 +57,10 @@ model Message {
   role      Role
   content   String
   modelId   String?
+  imagePath      String?
+  attachmentPath String?
+  attachmentName String?
+  attachmentText String?
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   model     Model?   @relation(fields: [modelId], references: [id], onDelete: SetNull)

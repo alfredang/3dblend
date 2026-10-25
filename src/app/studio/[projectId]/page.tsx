@@ -23,7 +23,10 @@ export default async function ProjectPage({ params, searchParams }: { params: Pr
   if (!project) notFound();
   const user = await prisma.user.findUniqueOrThrow({ where: { id: session.user.id }, select: { credits: true, plan: true } });
 
-  const messages: StudioMessage[] = project.messages.map((m) => ({ id: m.id, role: m.role === "user" ? "user" : "assistant", content: m.content, modelId: m.modelId }));
+  const messages: StudioMessage[] = project.messages.map((m) => ({
+    id: m.id, role: m.role === "user" ? "user" : "assistant", content: m.content, modelId: m.modelId,
+    imageUrl: m.imagePath ? `/api/messages/${m.id}/image` : undefined, attachmentName: m.attachmentName ?? undefined,
+  }));
   const models: StudioModel[] = project.models.map((m) => ({
     id: m.id, title: m.title, description: m.description, version: m.version, isPublic: m.isPublic, likesCount: m.likesCount, stats: m.stats as StudioModel["stats"], createdAt: m.createdAt.toISOString(),
   }));

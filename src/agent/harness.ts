@@ -14,11 +14,12 @@ import { buildSpec, type BuiltMesh } from "./kernel";
 import { analysePrintability, type PrintReport, type PrinterProfile, DEFAULT_PRINTER } from "./checks";
 import { toBinarySTL } from "./stl";
 import { toBlenderScript } from "./blender";
-import { SYSTEM_PROMPT, REPAIR_PROMPT } from "./prompts";
+import { SYSTEM_PROMPT, REPAIR_PROMPT, OPTIMIZE_PROMPT } from "./prompts";
 import type { ChatMessage, LLMClient } from "./llm";
 
 export type HarnessEvent =
   | { type: "status"; text: string }
+  | { type: "optimize"; before: number; after: number; kept: "optimized" | "original" }
   | { type: "attempt"; n: number; max: number }
   | { type: "llm"; chars: number }
   | { type: "validation"; ok: boolean; errors: string[] }
@@ -42,11 +43,27 @@ export interface HistoryItem {
   content: string;
   /** For assistant turns that produced a model, the spec they produced. */
   spec?: Spec | null;
+  /** Reference image (data URL) attached to a user turn. */
+  image?: string;
+  /** Text extracted from an attached document. */
+  attachmentText?: string;
+}
+
+/** Lower is better: hard errors dominate, then warnings, then overhang/thin-wall/bridge percentages. */
+export function printScore(r: PrintReport): number {
+  const m = r.metrics;
+  return r.errors.length * 100 + r.warnings.length * 10 + m.overhangPct * 0.5 + m.bridgePct * 0.3 + m.thinAreaPct * 1.0 + Math.max(0, 15 - m.baseContactPct) * 0.5;
 }
 
 export interface HarnessOptions {
   llm: LLMClient;
   maxAttempts?: number;
+  /** Run one extra "make it print better" pass when the build passes with warnings (default true). */
+  optimize?: boolean;
+  /** Reference image for this turn (data URL, JPEG/PNG). */
+  image?: string;
+  /** Text extracted from an attached PDF for this turn. */
+  attachmentText?: string;
   printer?: PrinterProfile;
   onEvent?: (e: HarnessEvent) => void;
 }
@@ -96,16 +113,27 @@ export function balanceBrackets(src: string): string {
 }
 
 /** Convert project history into chat messages; specs are inlined compactly so the model can edit them. */
-function toMessages(history: HistoryItem[], userPrompt: string): ChatMessage[] {
-  const msgs: ChatMessage[] = [{ role: "system", content: SYSTEM_PROMPT }];
+function userContent(text: string, image?: string, attachmentText?: string): ChatMessage["content"] {
+  let t = text;
+  if (attachmentText) t += `\n\n[Attached document text]\n${attachmentText}`;
+  if (!image) return t;
+  return [
+    { type: "text", text: `${t}\n\n[A reference image is attached. Reproduce the object's silhouette, proportions and key features with the CSG primitives; infer real-world dimensions from context if none are given, and keep it printable.]` },
+    { type: "image_url", image_url: { url: image } },
+  ];
+}
+
+function toMessages(history: HistoryItem[], userPrompt: string, printer: PrinterProfile, image?: string, attachmentText?: string): ChatMessage[] {
+  const target = `Target printer: ${printer.name ?? "generic FDM"}, build volume ${printer.bed.join("×")} mm, ${printer.nozzle} mm nozzle, ${printer.material}. Minimum wall ${(2 * printer.nozzle * 1.05).toFixed(1)} mm${printer.material === "TPU" ? "; flexible material — avoid overhangs and thin walls" : ""}.`;
+  const msgs: ChatMessage[] = [{ role: "system", content: `${SYSTEM_PROMPT}\n\n## Current target\n${target}` }];
   for (const h of history.slice(-12)) {
     if (h.role === "assistant") {
       msgs.push({ role: "assistant", content: JSON.stringify({ message: h.content, spec: h.spec ?? null }) });
     } else {
-      msgs.push({ role: "user", content: h.content });
+      msgs.push({ role: "user", content: userContent(h.content, h.image, h.attachmentText) });
     }
   }
-  msgs.push({ role: "user", content: userPrompt });
+  msgs.push({ role: "user", content: userContent(userPrompt, image, attachmentText) });
   return msgs;
 }
 
@@ -116,7 +144,7 @@ export async function runHarness(
 ): Promise<HarnessResult> {
   const { llm, onEvent = () => {}, printer = DEFAULT_PRINTER } = opts;
   const maxAttempts = opts.maxAttempts ?? 4;
-  const messages = toMessages(history, userPrompt);
+  const messages = toMessages(history, userPrompt, printer, opts.image, opts.attachmentText);
 
   let lastMessage = "";
   let lastSpec: Spec | null = null;
@@ -174,16 +202,41 @@ export async function runHarness(
       continue;
     }
 
-    const stl = toBinarySTL(mesh, validation.spec.name);
-    const blender = toBlenderScript(validation.spec);
+    // --- Optimisation pass: printable, but with warnings and budget left. ---
+    let best = { spec: validation.spec, mesh, report, message: reply.message };
+    let attemptsUsed = attempt;
+    if ((opts.optimize ?? true) && report.ok && report.warnings.length > 0 && attempt < maxAttempts) {
+      onEvent({ type: "status", text: "Optimising for printing…" });
+      const m = report.metrics;
+      const metrics = `overhang ${m.overhangPct}%, flat ceilings ${m.bridgePct}%, thin area ${m.thinAreaPct}%, min wall ${m.minWallMm} mm, bed contact ${m.baseContactPct}%, ${m.shells} piece(s)`;
+      messages.push({ role: "assistant", content: raw });
+      messages.push({ role: "user", content: OPTIMIZE_PROMPT(report.warnings, metrics) });
+      attemptsUsed++;
+      try {
+        const raw2 = await llm.complete(messages, { json: true });
+        const reply2 = parseReply(raw2);
+        const v2 = reply2.spec ? validateSpec(reply2.spec) : null;
+        if (v2 && v2.ok) {
+          const mesh2 = await buildSpec(v2.spec);
+          const report2 = analysePrintability(mesh2, printer);
+          const before = printScore(report), after = printScore(report2);
+          const kept = report2.ok && after < before ? "optimized" : "original";
+          onEvent({ type: "optimize", before, after, kept });
+          if (kept === "optimized") best = { spec: v2.spec, mesh: mesh2, report: report2, message: reply2.message || reply.message };
+        }
+      } catch (e) {
+        onEvent({ type: "status", text: `Optimisation skipped (${(e as Error).message})` });
+      }
+    }
+
     const result: HarnessResult = {
-      message: reply.message,
-      spec: validation.spec,
-      mesh,
-      stl,
-      blender,
-      report,
-      attempts: attempt,
+      message: best.message,
+      spec: best.spec,
+      mesh: best.mesh,
+      stl: toBinarySTL(best.mesh, best.spec.name),
+      blender: toBlenderScript(best.spec),
+      report: best.report,
+      attempts: attemptsUsed,
       model: llm.model,
     };
     onEvent({ type: "done", result });

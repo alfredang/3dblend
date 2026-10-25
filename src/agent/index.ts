@@ -6,3 +6,4 @@ export * from "./blender";
 export * from "./threemf";
 export * from "./llm";
 export * from "./harness";
+export * from "./thickness";

@@ -13,7 +13,7 @@ import { Markdown } from "@/components/Markdown";
 
 export const dynamic = "force-dynamic";
 
-type Stats = { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number };
+type Stats = { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; tips?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string } };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -64,12 +64,15 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
             <Stat Icon={Weight} label="Filament" value={stats.estGramsPLA ? `~${Math.round(stats.estGramsPLA)} g PLA` : "—"} />
             <Stat Icon={Clock} label="Print time" value={stats.estPrintMinutes ? `~${Math.floor(stats.estPrintMinutes / 60)}h ${stats.estPrintMinutes % 60}m` : "—"} />
             <Stat Icon={Layers} label="Mesh" value={stats.triangles ? `${stats.triangles.toLocaleString()} tris · watertight` : "—"} />
+            <Stat Icon={Printer} label="Designed for" value={stats.printer ? `${stats.printer.name} · ${stats.printer.nozzle} mm · ${stats.printer.material}` : "Generic FDM"} />
+            <Stat Icon={Ruler} label="Walls / layer" value={`${stats.minWallMm !== undefined ? `min ${stats.minWallMm} mm` : "—"} · ${stats.recommendedLayerHeight ?? 0.2} mm layers`} />
           </div>
 
-          {(stats.printNotes || stats.warnings?.length) && (
+          {(stats.printNotes || stats.warnings?.length || stats.tips?.length) && (
             <div className="card p-4 text-sm">
               <div className="flex items-center gap-2 font-medium"><Printer className="h-4 w-4 text-accent-2" /> Print notes</div>
               {stats.printNotes && <p className="mt-2 text-muted">{stats.printNotes}</p>}
+              {stats.tips?.map((t) => <p key={t} className="mt-2 text-xs text-muted">💡 {t}</p>)}
               {stats.warnings?.map((w) => <p key={w} className="mt-2 text-xs text-accent-3">⚠ {w}</p>)}
             </div>
           )}

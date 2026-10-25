@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 
-export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+export type ChatMessage =
+  | { role: "system"; content: string }
+  | { role: "assistant"; content: string }
+  | { role: "user"; content: string | ContentPart[] };
 
 export interface LLMClient {
   complete(messages: ChatMessage[], opts?: { json?: boolean; maxTokens?: number }): Promise<string>;

@@ -54,6 +54,8 @@ Transforms (apply to the union of children):
 
 9. Think in simple blocks: a stand = base plate + angled back plate + lip. Do not model fasteners, textures or decorative details unless asked. Round numbers to 0.5 mm.
 
+10. Reference images/documents: when the user attaches a picture or a drawing, match its overall silhouette and proportions with primitives (hull and revolve are good for organic shapes), read any dimensions printed on it, and simplify details that would not survive FDM printing.
+
 When the harness reports a build or printability error, fix the geometry and return the complete corrected JSON. Be concise in "message" (≤ 120 words) and never mention JSON or the kernel to the user; talk about the object.`;
 
 export const REPAIR_PROMPT = (errors: string[], warnings: string[]) =>
@@ -61,3 +63,8 @@ export const REPAIR_PROMPT = (errors: string[], warnings: string[]) =>
   errors.map((e) => `- ERROR: ${e}`).join("\n") +
   (warnings.length ? "\n" + warnings.map((w) => `- warning: ${w}`).join("\n") : "") +
   `\n\nRepair checklist: (1) the model is auto-seated so its LOWEST point becomes z=0 — a stray part below the main body makes the whole model "float"; (2) every part must overlap a neighbour by ≥ 1 mm (no touching-only or floating pieces: ears, eyes, handles, feet must sink into the body); (3) the largest flat face must be the lowest face; (4) keep walls ≥ 1.6 mm. Simplify the design if needed rather than adding more parts.`;
+
+export const OPTIMIZE_PROMPT = (warnings: string[], metrics: string) =>
+  `The model builds and is printable, but it can print better. Current metrics: ${metrics}.\n` +
+  warnings.map((w) => `- ${w}`).join("\n") +
+  `\n\nImprove the design for FDM printing while keeping the same object, purpose and overall dimensions: replace steep overhangs with 45° chamfers or hull blends, thicken thin features, widen the base or add a foot, turn flat ceilings into sloped roofs, and fuse any separate pieces. Return the complete improved JSON (message + spec). Keep the "message" short and mention what you optimised.`;

@@ -19,19 +19,19 @@ export default async function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28">
+      <section className="relative mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6 sm:pt-12">
         <div className="mx-auto max-w-3xl text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted">
             <Sparkles className="h-3.5 w-3.5 text-accent-2" /> Powered by DeepSeek V4.1 Flash + an exact geometry kernel
           </span>
-          <h1 className="mt-6 text-5xl font-semibold tracking-tight sm:text-6xl">
+          <h1 className="mt-4 text-5xl font-semibold tracking-tight sm:text-6xl">
             Describe it. <span className="gradient-text">Print it.</span>
           </h1>
-          <p className="mt-5 text-lg text-muted">
+          <p className="mt-4 text-lg text-muted">
             Chat your idea into a watertight, 3D-printable STL in seconds. Preview it in 3D, refine it in conversation,
             open it in Blender, and share it with the world.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link href={session ? "/studio" : "/register"} className="btn-primary !px-6 !py-3 text-base">
               {session ? "Open the studio" : "Start free — 10 credits"} <ArrowRight className="h-4 w-4" />
             </Link>
@@ -40,13 +40,13 @@ export default async function Home() {
         </div>
 
         {/* Prompt */}
-        <div className="mx-auto mt-14 max-w-3xl">
+        <div className="mx-auto mt-8 max-w-3xl">
           <HeroPrompt signedIn={Boolean(session)} />
         </div>
       </section>
 
       {/* Featured */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-semibold">Featured models</h2>

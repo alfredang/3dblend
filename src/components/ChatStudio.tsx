@@ -2,15 +2,44 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Send, Download, FileCode2, Globe, Lock, Loader2, Coins, Sparkles, ChevronDown, Share2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Send, Download, FileCode2, Globe, Lock, Loader2, Coins, Sparkles, ChevronDown, Share2, AlertTriangle, CheckCircle2, Plus, X, FileText } from "lucide-react";
 import { ModelViewer } from "./ModelViewer";
 import { Markdown } from "./Markdown";
 import { cn, colorFor } from "@/lib/utils";
+import { PrintSetupBar, usePrintSetup } from "./PrintSetup";
 
-export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null }
+export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null; imageUrl?: string; attachmentName?: string }
+
+interface Attachment { name: string; type: string; data: string; preview?: string }
+
+/** Downscale images in the browser (max 1280 px, JPEG) so uploads stay small; PDFs are sent as-is. */
+async function prepareAttachment(file: File): Promise<Attachment> {
+  if (file.type === "application/pdf") {
+    if (file.size > 8 * 1024 * 1024) throw new Error("PDF must be under 8 MB");
+    const data = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
+    return { name: file.name, type: file.type, data };
+  }
+  if (!file.type.startsWith("image/")) throw new Error("Attach a JPEG/PNG image or a PDF");
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL("image/jpeg", 0.86);
+    return { name: file.name, type: "image/jpeg", data, preview: data };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 export interface StudioModel {
   id: string; title: string; description: string; version: number; isPublic: boolean; likesCount: number; createdAt: string;
-  stats: { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; errors?: string[]; ok?: boolean; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; meanThicknessMm?: number; attempts?: number };
+  stats: { size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; errors?: string[]; tips?: string[]; ok?: boolean; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; meanThicknessMm?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string }; attempts?: number };
 }
 
 const SUGGESTIONS = [
@@ -42,6 +71,16 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   const listRef = useRef<HTMLDivElement>(null);
   const autoSent = useRef(false);
   const router = useRouter();
+  const [setup, setSetup] = usePrintSetup();
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    try { setAttachment(await prepareAttachment(f)); setError(null); } catch (err) { setError((err as Error).message); }
+  }
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -57,17 +96,19 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   }, []);
 
   async function send(text?: string) {
-    const content = (text ?? input).trim();
+    const content = (text ?? input).trim() || (attachment ? "Make a printable 3D model of what is shown in the attached reference." : "");
     if (!content || busy) return;
+    const att = attachment;
     setBusy(true);
     setError(null);
     setInput("");
+    setAttachment(null);
     setStatus("Thinking…");
     const tempId = `tmp-${Date.now()}`;
-    setMessages((m) => [...m, { id: tempId, role: "user", content }]);
+    setMessages((m) => [...m, { id: tempId, role: "user", content, imageUrl: att?.preview, attachmentName: att?.name }]);
 
     try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ projectId: project.id, message: content }) });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ projectId: project.id, message: content, setup, attachment: att ? { name: att.name, type: att.type, data: att.data } : undefined }) });
       if (!res.ok || !res.body) throw new Error(await res.text());
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -86,7 +127,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
           const j = JSON.parse(data);
           if (ev === "status") setStatus(j.text);
           else if (ev === "message") {
-            if (j.role === "user") setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, id: j.id } : x)));
+            if (j.role === "user") setMessages((m) => m.map((x) => (x.id === tempId ? { ...x, id: j.id, imageUrl: j.imageUrl ?? x.imageUrl, attachmentName: j.attachmentName ?? x.attachmentName } : x)));
             else setMessages((m) => [...m, { id: j.id, role: "assistant", content: j.content, modelId: j.modelId }]);
           } else if (ev === "model") {
             const mm = j.model as StudioModel;
@@ -125,7 +166,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   const s = current?.stats ?? {};
 
   return (
-    <div className="mx-auto grid w-full max-w-[1600px] flex-1 gap-4 px-4 py-4 lg:grid-cols-[420px_1fr] lg:px-6" style={{ minHeight: "calc(100vh - 4rem)" }}>
+    <div className="mx-auto grid w-full max-w-[1800px] flex-1 gap-4 px-4 py-4 lg:grid-cols-[minmax(460px,38%)_1fr] lg:px-6" style={{ minHeight: "calc(100vh - 4rem)" }}>
       {/* Chat column */}
       <section className="card flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden">
         <header className="flex items-center justify-between border-b border-line px-4 py-3">
@@ -152,7 +193,16 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
           )}
           {messages.map((m) => (
             <div key={m.id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-              <div className={cn("prose-chat max-w-[90%] rounded-2xl px-4 py-2.5 text-sm", m.role === "user" ? "bg-accent text-white" : "bg-elev")}>
+              <div className={cn("prose-chat max-w-[92%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed", m.role === "user" ? "bg-accent text-white" : "bg-elev")}>
+                {m.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.imageUrl} alt={m.attachmentName ?? "reference"} className="mb-2 max-h-56 rounded-xl border border-white/20 object-contain" />
+                )}
+                {m.attachmentName && (
+                  <a href={m.id.startsWith("tmp-") ? undefined : `/api/messages/${m.id}/attachment`} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-black/20 px-2 py-1 text-xs">
+                    <FileText className="h-3.5 w-3.5" /> {m.attachmentName}
+                  </a>
+                )}
                 <Markdown text={m.content} />
                 {m.modelId && (
                   <button onClick={() => setCurrent(models.find((x) => x.id === m.modelId) ?? null)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-xs text-accent-2 hover:bg-white/5">
@@ -173,21 +223,41 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); send(); }} className="border-t border-line p-3">
-          <div className="flex items-end gap-2">
+          <div className="relative rounded-2xl border border-line bg-elev focus-within:border-accent">
+            {attachment && (
+              <div className="flex items-center gap-2 px-3 pt-3">
+                {attachment.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={attachment.preview} alt="" className="h-14 w-14 rounded-lg border border-line object-cover" />
+                ) : (
+                  <span className="inline-grid h-14 w-14 place-items-center rounded-lg border border-line bg-card"><FileText className="h-6 w-6 text-accent-3" /></span>
+                )}
+                <span className="truncate text-xs text-muted">{attachment.name}</span>
+                <button type="button" onClick={() => setAttachment(null)} className="ml-auto rounded-full p-1 text-muted hover:bg-white/10 hover:text-fg" aria-label="Remove attachment"><X className="h-4 w-4" /></button>
+              </div>
+            )}
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden" onChange={onPickFile} />
             <textarea
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              rows={2}
-              placeholder={models.length ? "Suggest a change… e.g. make the walls 3 mm and add a lip" : "Describe what you want to print…"}
-              className="input resize-none"
+              onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = `${Math.min(e.target.scrollHeight, 260)}px`; }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
+              rows={3}
+              placeholder={models.length ? "Suggest a change… e.g. make the walls 3 mm, add a lip, round the corners" : "Describe what you want to print — the object, its purpose and rough size…"}
+              className="min-h-[96px] w-full resize-none bg-transparent px-4 pb-12 pt-3 text-[15px] leading-relaxed text-fg outline-none placeholder:text-muted"
               disabled={busy}
             />
-            <button className="btn-primary h-10 w-10 shrink-0 !p-0" disabled={busy || !input.trim()} aria-label="Send">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
+            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="inline-grid h-9 w-9 place-items-center rounded-full border border-line text-muted hover:border-accent hover:text-fg" title="Attach a reference image or PDF" aria-label="Attach a reference image or PDF">
+                  <Plus className="h-4 w-4" />
+                </button>
+                <span className="hidden text-[11px] text-muted sm:inline">Enter for a new line · ⌘/Ctrl+Enter to send · 1 credit per turn · {plan}</span>
+              </div>
+              <button className="btn-primary h-9 w-9 !rounded-full !p-0" disabled={busy || (!input.trim() && !attachment)} aria-label="Send">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
-          <p className="mt-1.5 px-1 text-[11px] text-muted">1 credit per generation or refinement · {plan} plan</p>
         </form>
       </section>
 
@@ -224,12 +294,19 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
             </div>
 
             <div className="border-t border-line bg-card/90 p-4 backdrop-blur">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <PrintSetupBar setup={setup} onChange={setSetup} compact />
+                <span className="text-[11px] text-muted">Next generation designs for this printer, nozzle and material</span>
+              </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
                   {s.size && <span><b className="text-fg">{s.size.map((n) => Math.round(n)).join(" × ")}</b> mm</span>}
                   {s.estGramsPLA !== undefined && <span><b className="text-fg">~{s.estGramsPLA < 1 ? s.estGramsPLA.toFixed(1) : Math.round(s.estGramsPLA)} g</b> PLA</span>}
                   {s.estPrintMinutes !== undefined && <span><b className="text-fg">~{Math.floor(s.estPrintMinutes / 60)}h {s.estPrintMinutes % 60}m</b></span>}
                   {s.triangles !== undefined && <span><b className="text-fg">{s.triangles.toLocaleString()}</b> tris</span>}
+                  {s.minWallMm !== undefined && <span>min wall <b className="text-fg">{s.minWallMm} mm</b></span>}
+                  {s.recommendedLayerHeight !== undefined && <span>layer <b className="text-fg">{s.recommendedLayerHeight} mm</b></span>}
+                  {s.printer && <span className="text-muted">{s.printer.name} · {s.printer.nozzle} mm · {s.printer.material}</span>}
                   <span
                     className={cn("inline-flex items-center gap-1", s.ok === false ? "text-accent-3" : "text-accent-2")}
                     title={s.ok === false ? `Printability checks failed:\n${(s.errors ?? []).join("\n")}` : "Watertight mesh, passed all printability checks"}
@@ -244,9 +321,10 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                   <a href={`/api/models/${current.id}/blender`} className="btn-ghost !py-2 text-xs"><FileCode2 className="h-4 w-4" />Blender .py</a>
                 </div>
               </div>
-              {(s.printNotes || s.warnings?.length || s.errors?.length) && (
+              {(s.printNotes || s.warnings?.length || s.errors?.length || s.tips?.length) && (
                 <div className="mt-3 space-y-1 text-xs">
                   {s.printNotes && <p className="text-muted">🖨 {s.printNotes}</p>}
+                  {s.tips?.map((w) => <p key={w} className="text-muted">💡 {w}</p>)}
                   {s.errors?.map((w) => <p key={w} className="text-accent-3">✖ {w}</p>)}
                   {s.warnings?.map((w) => <p key={w} className="text-accent-3/80">⚠ {w}</p>)}
                   {s.ok === false && (
@@ -270,6 +348,8 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
             </div>
             <h2 className="mt-4 text-lg font-medium">Your model will appear here</h2>
             <p className="mt-1 max-w-sm text-sm text-muted">Orbit, zoom and inspect it in 3D. Every version is kept so you can compare refinements.</p>
+            <div className="mt-6"><PrintSetupBar setup={setup} onChange={setSetup} /></div>
+            <p className="mt-2 text-xs text-muted">The agent designs for this printer, nozzle and material.</p>
           </div>
         )}
       </section>

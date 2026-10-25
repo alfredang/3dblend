@@ -14,10 +14,12 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 
 ## Features
 
-- **Chat‑to‑STL studio** — streaming status while the agent designs, builds, checks and repairs the model; every version is kept and switchable.
+- **Chat‑to‑STL studio** — large multi‑line composer (Enter for a new line, ⌘/Ctrl+Enter to send) with streaming status while the agent designs, builds, checks, repairs and optimises the model; every version is kept and switchable.
+- **Reference images and PDFs** — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
+- **Print optimisation pass** — when a build passes but carries warnings (overhangs, thin walls, flat ceilings, loose pieces) the harness asks the agent for a print‑friendlier version and keeps whichever scores better.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
 - **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).
-- **Printability report** — build‑volume fit, bed contact %, overhang %, wall‑thickness heuristic, shell count, filament grams and print‑time estimates.
+- **Printer‑aware DFM checks** — pick a printer (generic, Bambu Lab A1 mini / A1 / P1S / X1C, Prusa, Ender, large format), nozzle and material (PLA, PETG, ABS, TPU). The agent designs for that bed and nozzle, and the report covers build‑volume fit, bed contact, overhangs, flat ceilings/bridges, a **ray‑cast local wall‑thickness map** (BVH sampling, corner‑artefact filtered), shell count, a recommended layer height, material‑specific tips, and filament/time estimates.
 - **3MF export** — on‑demand `.3mf` (units, indexed mesh, metadata) for Bambu Studio, PrusaSlicer and Cura, derived from the stored STL and cached.
 - **Blender‑friendly export** — a `.blender.py` per model that recreates the design with `bmesh` primitives, EXACT booleans, arrays and mirrors, in millimetres, sitting on the build plate.
 - **3D viewer** — React Three Fiber, orbit/zoom, auto‑rotate, grid and contact shadows.
@@ -43,9 +45,13 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 ### The agent harness
 
 ```
-user idea ─► LLM ─► { message, spec } ─► zod validation ─► Manifold build ─► printability checks ─► STL + .py
-                ▲                                 │                 │                   │
-                └──────── repair prompt with the exact errors ◄─────┴───────────────────┘   (max 4 attempts)
+user idea (+ image / PDF, printer, nozzle, material)
+      │
+      ▼
+   LLM ─► { message, spec } ─► zod validation ─► Manifold build ─► DFM checks ─► OK? ──► optimise pass ─► STL / 3MF / .py
+    ▲                                 │                 │              │                 (kept only if the
+    └──────── repair prompt with the exact errors ◄─────┴──────────────┘                  print score improves)
+                                                                 (max 4 attempts)
 ```
 
 The model never touches geometry directly. It writes a declarative **spec** in a ~20‑op CSG DSL (`cube`, `cylinder`, `sphere`, `cone`, `torus`, `roundedBox`, `extrude`, `revolve`, `union`, `difference`, `intersection`, `hull`, `translate`, `rotate`, `scale`, `mirror`, `repeat`, `radial`, `ref`/`parts`). The harness owns every side effect, which keeps generation deterministic, cheap (one LLM call per attempt, ~3 s), replayable, and safe to expose publicly.
@@ -56,12 +62,17 @@ Key files:
 | --- | --- |
 | `src/agent/spec.ts` | DSL schema (zod) and semantic validation (refs, cycles, size limits) |
 | `src/agent/kernel.ts` | Manifold builder → positions/indices, volume, bbox, genus, shells |
-| `src/agent/checks.ts` | Printability analysis (errors block, warnings inform) |
+| `src/agent/checks.ts` | DFM analysis: fit, overhangs, bridges, thin walls, layer height, material tips |
+| `src/agent/thickness.ts` | Local wall‑thickness map via BVH ray casting (three-mesh-bvh) |
+| `src/lib/printers.ts` | Printer / nozzle / material presets |
+| `src/components/PrintSetup.tsx` | Printer / nozzle / material selector (persisted per browser) |
+| `src/app/api/messages/[id]/image` | Serves a message's reference image (owner only) |
 | `src/agent/stl.ts` | Binary STL writer + parser |
 | `src/agent/threemf.ts` | 3MF (zip + XML) writer |
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
-| `src/agent/harness.ts` | The generate → validate → build → check → repair loop |
+| `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
+| `src/lib/attachments.ts` | Reference attachments: image pass‑through, PDF text extraction + first‑page render (pdfjs + napi canvas) |
 | `src/agent/prompts.ts` | System prompt with the DSL reference and FDM design rules |
 | `scripts/agent-cli.ts` | `npm run agent -- "a hex pencil cup"` → `out/*.stl`, `*.blender.py`, `*.spec.json` |
 
@@ -127,7 +138,8 @@ Health check: `GET /api/health`.
 | `/api/register` | POST | create account (10 free credits) |
 | `/api/auth/*` | | Auth.js credentials provider |
 | `/api/projects` | GET / POST | list / create chat projects |
-| `/api/chat` | POST (SSE) | run the agent for a project; events `status`, `message`, `model`, `credits`, `error` |
+| `/api/chat` | POST (SSE) | run the agent for a project with `{ message, setup, attachment? }`; events `status`, `message`, `model`, `credits`, `error` |
+| `/api/messages/:id/image`, `/api/messages/:id/attachment` | GET | reference image / original upload for a chat message (owner only) |
 | `/api/models/:id/stl` | GET | binary STL (`?download=1` counts a download) |
 | `/api/models/:id/3mf` | GET | 3MF package (`?download=1` counts a download) |
 | `/api/models/:id/blender` | GET | Blender Python script |
@@ -141,11 +153,11 @@ Health check: `GET /api/health`.
 
 ## Data model
 
-`User` (plan, credits, Stripe ids) → `Project` → `Message` (role, content, optional `modelId`) and `Model` (spec JSON, stats JSON, `stlPath`, `blenderPath`, `isPublic`, `featured`, counters) with `Like` (user × model) and `CreditTransaction` (audit log).
+`User` (plan, credits, Stripe ids) → `Project` → `Message` (role, content, optional `modelId`, optional reference `imagePath` / `attachmentPath` / extracted `attachmentText`) and `Model` (spec JSON, stats JSON, `stlPath`, `blenderPath`, `isPublic`, `featured`, counters) with `Like` (user × model) and `CreditTransaction` (audit log).
 
 ## Tech stack
 
-Next.js 16 (App Router, standalone output) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL 16 · Auth.js v5 · OpenAI SDK → DeepSeek · manifold‑3d (WASM) · three.js / @react‑three/fiber / drei · Stripe · Docker / Coolify.
+Next.js 16 (App Router, standalone output) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL 16 · Auth.js v5 · OpenAI SDK → DeepSeek V4.1 Flash (text + vision) · manifold‑3d (WASM) · three.js / @react‑three/fiber / drei · three‑mesh‑bvh · pdfjs‑dist + @napi‑rs/canvas · fflate · Stripe · Docker / Coolify.
 
 ## Acknowledgements
 

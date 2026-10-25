@@ -38,7 +38,7 @@ export async function seedSamples(log: (s: string) => void = () => {}) {
         description: spec.description,
         prompt,
         spec: spec as object,
-        stats: { ...report.metrics, ok: report.ok, warnings: report.warnings, errors: report.errors, printNotes: spec.printNotes ?? null, attempts: 1, llm: "seed" } as object,
+        stats: { ...report.metrics, ok: report.ok, warnings: report.warnings, errors: report.errors, tips: report.tips, recommendedLayerHeight: report.recommendedLayerHeight, printer: report.printer, printNotes: spec.printNotes ?? null, attempts: 1, llm: "seed" } as object,
         stlPath: "pending",
         blenderPath: "pending",
         isPublic: true,
