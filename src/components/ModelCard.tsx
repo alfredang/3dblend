@@ -23,7 +23,6 @@ export interface ModelCardData {
 export function ModelCard({ model }: { model: ModelCardData }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [hover, setHover] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -37,12 +36,10 @@ export function ModelCard({ model }: { model: ModelCardData }) {
     <Link
       href={`/m/${model.id}`}
       className="card group block overflow-hidden transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-xl hover:shadow-accent/10"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
       <div ref={ref} className="relative aspect-[4/3] bg-[#0b0d14]">
         {visible ? (
-          <ModelViewer url={`/api/models/${model.id}/stl`} size={model.size} color={colorFor(model.id)} autoRotate={hover} interactive={false} frameloop={hover ? "always" : "demand"} className="h-full w-full" />
+          <ModelViewer url={`/api/models/${model.id}/stl`} size={model.size} color={colorFor(model.id)} autoRotate interactive={false} frameloop="always" className="h-full w-full" />
         ) : (
           <div className="h-full w-full animate-pulse bg-elev" />
         )}
