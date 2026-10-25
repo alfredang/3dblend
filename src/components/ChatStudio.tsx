@@ -227,7 +227,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
                   {s.size && <span><b className="text-fg">{s.size.map((n) => Math.round(n)).join(" × ")}</b> mm</span>}
-                  {s.estGramsPLA !== undefined && <span><b className="text-fg">~{Math.round(s.estGramsPLA)} g</b> PLA</span>}
+                  {s.estGramsPLA !== undefined && <span><b className="text-fg">~{s.estGramsPLA < 1 ? s.estGramsPLA.toFixed(1) : Math.round(s.estGramsPLA)} g</b> PLA</span>}
                   {s.estPrintMinutes !== undefined && <span><b className="text-fg">~{Math.floor(s.estPrintMinutes / 60)}h {s.estPrintMinutes % 60}m</b></span>}
                   {s.triangles !== undefined && <span><b className="text-fg">{s.triangles.toLocaleString()}</b> tris</span>}
                   <span className={cn("inline-flex items-center gap-1", s.ok === false ? "text-accent-3" : "text-accent-2")}>

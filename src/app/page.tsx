@@ -3,6 +3,7 @@ import { ArrowRight, Box, Cpu, Printer, Sparkles, Wand2, FileCode2 } from "lucid
 import { auth } from "@/lib/auth";
 import { listPublicModels } from "@/lib/models";
 import { ModelCard } from "@/components/ModelCard";
+import { HeroPrompt } from "@/components/HeroPrompt";
 import { PLANS } from "@/lib/plans";
 import { ensureSeeded } from "@/lib/seed";
 
@@ -38,24 +39,9 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Prompt teaser */}
+        {/* Prompt */}
         <div className="mx-auto mt-14 max-w-3xl">
-          <div className="card glass p-3 shadow-2xl shadow-accent/10">
-            <div className="flex items-center gap-3 rounded-xl bg-elev px-4 py-3 text-sm text-muted">
-              <Wand2 className="h-4 w-4 text-accent" />
-              <span className="truncate">“A desk phone stand for a 75 mm phone, angled 65°, with a cable slot in the base”</span>
-              <Link href={session ? "/studio?prompt=A desk phone stand for a 75 mm phone, angled 65°, with a cable slot in the base" : "/register"} className="ml-auto shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white">
-                Generate
-              </Link>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2 px-1 text-xs text-muted">
-              {["hex pencil cup with honeycomb cutouts", "self-watering planter, 100 mm", "cable clip for a desk edge", "raspberry pi 4 case with vents"].map((p) => (
-                <Link key={p} href={session ? `/studio?prompt=${encodeURIComponent(p)}` : "/register"} className="rounded-full border border-line px-2.5 py-1 hover:border-accent hover:text-fg">
-                  {p}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <HeroPrompt signedIn={Boolean(session)} />
         </div>
       </section>
 

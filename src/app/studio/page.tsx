@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ prompt?: string }> }) {
   const session = await auth();
   const { prompt } = await searchParams;
-  if (!session?.user?.id) redirect(`/login?next=${encodeURIComponent(prompt ? `/studio?prompt=${prompt}` : "/studio")}`);
+  if (!session?.user?.id) redirect(`/login?next=${encodeURIComponent(prompt ? `/studio?prompt=${encodeURIComponent(prompt)}` : "/studio")}`);
 
   // Deep link from the landing page: create a project and jump straight in.
   if (prompt) {
