@@ -10,6 +10,7 @@ const GROUPS: { id: string; title: string; blurb: string; test?: { service: stri
   { id: "ai", title: "AI model (DeepSeek)", blurb: "The agent that designs models. Keys saved here override the server environment and are encrypted at rest.", test: [{ service: "ai", label: "Test connection" }] },
   { id: "hitpay", title: "HitPay payments", blurb: "Recurring billing for Starter and Pro. Register the webhook URL below in HitPay (Developers → Webhooks) and paste its salt here.", test: [{ service: "hitpay", label: "Test connection" }] },
   { id: "smtp", title: "Email (SMTP)", blurb: "Used for welcome, invoice and subscription emails. Any SMTP provider works (Google Workspace, Microsoft 365, Mailgun, Resend, SES).", test: [{ service: "smtp", label: "Verify login" }, { service: "smtp-send", label: "Send test email" }] },
+  { id: "security", title: "Sign-up security", blurb: "Email verification (needs SMTP) and invisible bot protection with Cloudflare Turnstile. A honeypot field and per-IP rate limits are always on." },
   { id: "general", title: "General", blurb: "Details shown inside emails." },
 ];
 

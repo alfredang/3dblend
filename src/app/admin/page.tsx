@@ -55,11 +55,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   if (tab === "users") {
     const where: Prisma.UserWhereInput = q ? { OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }] } : {};
     const [rows, count] = await Promise.all([
-      prisma.user.findMany({ where, orderBy: { createdAt: "desc" }, skip, take: PAGE, select: { id: true, email: true, name: true, plan: true, credits: true, isAdmin: true, createdAt: true, _count: { select: { models: true, projects: true } }, subscriptions: { where: { status: { in: ["ACTIVE", "PAST_DUE", "CANCELLED"] } }, orderBy: { createdAt: "desc" }, take: 1, select: { status: true, plan: true } } } }),
+      prisma.user.findMany({ where, orderBy: { createdAt: "desc" }, skip, take: PAGE, select: { id: true, email: true, name: true, plan: true, credits: true, isAdmin: true, emailVerified: true, createdAt: true, _count: { select: { models: true, projects: true } }, subscriptions: { where: { status: { in: ["ACTIVE", "PAST_DUE", "CANCELLED"] } }, orderBy: { createdAt: "desc" }, take: 1, select: { status: true, plan: true } } } }),
       prisma.user.count({ where }),
     ]);
     total = count;
-    body = <AdminUsers users={rows.map((u) => ({ ...u, createdAt: u.createdAt.toISOString(), models: u._count.models, projects: u._count.projects, subscription: u.subscriptions[0] ? `${u.subscriptions[0].plan} · ${u.subscriptions[0].status.toLowerCase()}` : null }))} selfId={admin.id} />;
+    body = <AdminUsers users={rows.map((u) => ({ ...u, emailVerified: Boolean(u.emailVerified), createdAt: u.createdAt.toISOString(), models: u._count.models, projects: u._count.projects, subscription: u.subscriptions[0] ? `${u.subscriptions[0].plan} · ${u.subscriptions[0].status.toLowerCase()}` : null }))} selfId={admin.id} />;
   } else if (tab === "models") {
     const where: Prisma.ModelWhereInput = {
       ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { user: { email: { contains: q, mode: "insensitive" } } }] } : {}),

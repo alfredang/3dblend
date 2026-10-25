@@ -27,6 +27,7 @@ model User {
   image            String?
   plan             Plan     @default(FREE)
   isAdmin          Boolean  @default(false)
+  emailVerified    DateTime?
   credits          Int      @default(10)
   creditsResetAt   DateTime @default(now())
   createdAt        DateTime @default(now())
@@ -37,6 +38,19 @@ model User {
   transactions  CreditTransaction[]
   subscriptions Subscription[]
   invoices      Invoice[]
+  tokens        VerificationToken[]
+}
+
+/// One-time tokens for email verification (and future password resets).
+model VerificationToken {
+  token     String   @id
+  userId    String
+  type      String   @default("verify")
+  expires   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
 }
 
 enum SubscriptionStatus {

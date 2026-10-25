@@ -6,7 +6,7 @@
 import crypto from "node:crypto";
 import { prisma } from "./prisma";
 
-export interface SettingDef { key: string; env?: string; secret?: boolean; label: string; help?: string; group: "ai" | "hitpay" | "smtp" | "general"; type?: "text" | "password" | "number" | "boolean" | "select"; options?: string[]; default?: string }
+export interface SettingDef { key: string; env?: string; secret?: boolean; label: string; help?: string; group: "ai" | "hitpay" | "smtp" | "security" | "general"; type?: "text" | "password" | "number" | "boolean" | "select"; options?: string[]; default?: string }
 
 export const SETTING_DEFS: SettingDef[] = [
   { key: "ai.apiKey", env: "DEEPSEEK_API_KEY", secret: true, label: "DeepSeek API key", group: "ai", type: "password" },
@@ -26,6 +26,9 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: "smtp.fromName", env: "SMTP_FROM_NAME", label: "From name", group: "smtp", default: "3DBlend" },
   { key: "smtp.fromEmail", env: "SMTP_FROM_EMAIL", label: "From email", group: "smtp" },
   { key: "smtp.replyTo", env: "SMTP_REPLY_TO", label: "Reply-to", group: "smtp" },
+  { key: "security.requireEmailVerification", env: "REQUIRE_EMAIL_VERIFICATION", label: "Require email verification", group: "security", type: "boolean", default: "1", help: "New accounts must click the link in their email before they can log in (needs SMTP)" },
+  { key: "security.turnstileSiteKey", env: "TURNSTILE_SITE_KEY", label: "Cloudflare Turnstile site key", group: "security", help: "Public key; create a widget in the Cloudflare dashboard (mode: Managed or Invisible)" },
+  { key: "security.turnstileSecret", env: "TURNSTILE_SECRET_KEY", secret: true, label: "Turnstile secret key", group: "security", type: "password" },
   { key: "general.supportEmail", label: "Support email (shown in emails)", group: "general", default: "enquiry@tertiaryinfotech.com" },
 ];
 
@@ -78,6 +81,7 @@ export async function getConfig() {
     ai: { apiKey: await g("ai.apiKey"), baseUrl: await g("ai.baseUrl"), model: await g("ai.model"), thinking: (await g("ai.thinking")) === "1" },
     hitpay: { apiKey: await g("hitpay.apiKey"), salt: await g("hitpay.salt"), webhookSalt: await g("hitpay.webhookSalt"), sandbox: (await g("hitpay.sandbox")) !== "0", currency: await g("hitpay.currency") },
     smtp: { host: await g("smtp.host"), port: Number(await g("smtp.port")) || 587, secure: (await g("smtp.secure")) === "1", user: await g("smtp.user"), pass: await g("smtp.pass"), fromName: await g("smtp.fromName"), fromEmail: await g("smtp.fromEmail"), replyTo: await g("smtp.replyTo") },
+    security: { requireEmailVerification: (await g("security.requireEmailVerification")) !== "0", turnstileSiteKey: await g("security.turnstileSiteKey"), turnstileSecret: await g("security.turnstileSecret") },
     general: { supportEmail: await g("general.supportEmail") },
   };
 }

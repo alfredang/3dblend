@@ -1,4 +1,4 @@
-import NextAuth, { type DefaultSession } from "next-auth";
+import NextAuth, { CredentialsSignin, type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -11,6 +11,10 @@ declare module "next-auth" {
 }
 
 const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
+
+class EmailNotVerified extends CredentialsSignin {
+  code = "email_not_verified";
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -26,6 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user) return null;
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
+        if (!user.emailVerified) throw new EmailNotVerified();
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),

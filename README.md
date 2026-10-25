@@ -28,6 +28,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **FAQ and contact footer** — credits per generation, formats, printers, licensing; contact details come from `src/lib/site.ts`.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
+- **Verified, spam‑resistant sign‑up** — every new account must click an emailed verification link before logging in (24 h token, resend, admin override); sign‑up is protected by invisible Cloudflare Turnstile (interaction‑only mode), a honeypot field and per‑IP rate limits. Verification requires SMTP; Turnstile keys live in Admin → Integrations.
 - **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, monthly top‑ups; the navbar **Dashboard** button opens the account page (or the admin backend for admins).
 - **HitPay subscriptions** — Starter/Pro checkout on HitPay's hosted page (cards, PayNow and more); activation is verified against HitPay's API, every charge auto‑generates a numbered invoice (PDF download from the account page) and resets credits; users can cancel anytime and keep access until the paid period ends; a daily reconciliation keeps subscriptions in sync even if a webhook is missed.
 - **Remix attribution** — remixing a gallery model records the original (`remixOfId`) and a "Title by Author" snapshot that every later version inherits; shown on the share page, in the studio, on gallery cards and inside the 3MF metadata (CC BY 4.0).
@@ -80,6 +81,8 @@ Key files:
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
+| `src/lib/security.ts` | Turnstile verification, honeypot, in‑memory rate limiter |
+| `src/lib/verification.ts` | Email verification tokens and sending |
 | `src/lib/settings.ts` | DB‑backed integration settings with env fallback and AES‑GCM‑encrypted secrets |
 | `src/lib/email.ts` | SMTP sending (nodemailer) and editable `{{variable}}` templates |
 | `src/lib/attachments.ts` | Attachments: images, PDF text + first‑page render, STL/3MF import, Blender‑script spec recovery |
@@ -124,6 +127,7 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `HITPAY_API_KEY`, `HITPAY_SALT`, `HITPAY_WEBHOOK_SALT`, `HITPAY_SANDBOX`, `HITPAY_CURRENCY` | | enable paid upgrades via HitPay recurring billing (sandbox with `HITPAY_SANDBOX=1`); without a key the UI shows “Coming soon” |
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
 | `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `REQUIRE_EMAIL_VERIFICATION` | | sign‑up bot protection and verification toggle (also editable in Admin → Integrations) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM_NAME`, `SMTP_FROM_EMAIL`, `SMTP_REPLY_TO` | | transactional email; all of these (and the AI / HitPay keys) can instead be set in Admin → Integrations |
 | `SEED_ADMIN_PASSWORD`, `SEED_TEST_PASSWORD` | | when set, `admin@3dblend.app` (admin, Pro) and `test@3dblend.app` (Free) are created/updated on boot |
 
@@ -148,7 +152,8 @@ Health check: `GET /api/health`.
 
 | Route | Method | Description |
 | --- | --- | --- |
-| `/api/register` | POST | create account (10 free credits) |
+| `/api/register` | POST | create account (10 free credits); Turnstile + honeypot + rate limit; sends the verification email |
+| `/api/auth/verify`, `/api/auth/resend` | GET / POST | consume a verification link / resend it |
 | `/api/auth/*` | | Auth.js credentials provider |
 | `/api/projects` | GET / POST | list / create chat projects |
 | `/api/chat` | POST (SSE) | run the agent for a project with `{ message, setup, attachment? }`; events `status`, `message`, `model`, `credits`, `error` |

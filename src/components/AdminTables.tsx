@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Star, Globe, Lock, Trash2, Plus, Shield, EyeOff, Download, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface AdminUser { id: string; email: string; name: string | null; plan: "FREE" | "STARTER" | "PRO"; credits: number; isAdmin: boolean; createdAt: string; models: number; projects: number; subscription: string | null }
+export interface AdminUser { id: string; email: string; name: string | null; plan: "FREE" | "STARTER" | "PRO"; credits: number; isAdmin: boolean; emailVerified: boolean; createdAt: string; models: number; projects: number; subscription: string | null }
 export interface AdminModel { id: string; title: string; isPublic: boolean; featured: boolean; likesCount: number; downloads: number; views: number; createdAt: string; owner: string; attribution?: string }
 export interface AdminSub { id: string; email: string; name: string | null; plan: string; status: string; amount: number; currency: string; startDate: string | null; currentPeriodEnd: string | null; endsAt: string | null; timesCharged: number; invoices: number; providerBillingId: string | null; createdAt: string }
 export interface AdminInvoice { id: string; number: string; email: string; plan: string; amount: number; currency: string; status: string; paidAt: string; periodStart: string; periodEnd: string }
@@ -36,7 +36,7 @@ export function AdminUsers({ users, selfId }: { users: AdminUser[]; selfId: stri
         <tbody className="divide-y divide-line">
           {users.map((u) => (
             <tr key={u.id}>
-              <td className={td}><div className="font-medium">{u.name ?? "—"} {u.isAdmin && <Shield className="inline h-3.5 w-3.5 text-accent-2" />}</div><div className="text-xs text-muted">{u.email}</div></td>
+              <td className={td}><div className="font-medium">{u.name ?? "—"} {u.isAdmin && <Shield className="inline h-3.5 w-3.5 text-accent-2" />}</div><div className="text-xs text-muted">{u.email} {u.emailVerified ? <span className="text-accent-2">· verified</span> : <span className="text-accent-3">· unverified</span>}</div></td>
               <td className={td}>
                 <select className="rounded-lg border border-line bg-elev px-2 py-1 text-xs" value={u.plan} disabled={busy} onChange={(e) => { if (confirm(`Set ${u.email} to ${e.target.value}? Credits reset to the plan allowance.`)) call(`/api/admin/users`, "PATCH", { id: u.id, plan: e.target.value }); }}>
                   {["FREE", "STARTER", "PRO"].map((p) => <option key={p}>{p}</option>)}
@@ -49,6 +49,7 @@ export function AdminUsers({ users, selfId }: { users: AdminUser[]; selfId: stri
               <td className={td}>
                 <div className="flex flex-wrap gap-1">
                   {[10, 100].map((n) => <button key={n} disabled={busy} onClick={() => call(`/api/admin/users`, "PATCH", { id: u.id, addCredits: n })} className="btn-ghost !px-2 !py-1 text-xs" title={`Add ${n} credits`}><Plus className="h-3 w-3" />{n}</button>)}
+                  {!u.emailVerified && <button disabled={busy} onClick={() => call(`/api/admin/users`, "PATCH", { id: u.id, verify: true })} className="btn-ghost !px-2 !py-1 text-xs text-accent-2">Mark verified</button>}
                   {u.id !== selfId && <button disabled={busy} onClick={() => { if (confirm(`${u.isAdmin ? "Revoke" : "Grant"} admin for ${u.email}?`)) call(`/api/admin/users`, "PATCH", { id: u.id, isAdmin: !u.isAdmin }); }} className="btn-ghost !px-2 !py-1 text-xs">{u.isAdmin ? "Revoke admin" : "Make admin"}</button>}
                 </div>
               </td>
