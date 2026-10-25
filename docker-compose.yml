@@ -10,6 +10,22 @@ services:
     restart: unless-stopped
     expose:
       - "3000"
+    # Router labels for the Traefik that fronts this host (entrypoints
+    # web/websecure, ACME resolver mytlschallenge). Harmless elsewhere.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.3dblend-web.entrypoints=web
+      - traefik.http.routers.3dblend-web.rule=Host(`3dblend.tertiaryinfotech.com`)
+      - traefik.http.routers.3dblend-web.middlewares=3dblend-https
+      - traefik.http.middlewares.3dblend-https.redirectscheme.scheme=https
+      - traefik.http.routers.3dblend-websecure.entrypoints=websecure
+      - traefik.http.routers.3dblend-websecure.rule=Host(`3dblend.tertiaryinfotech.com`)
+      - traefik.http.routers.3dblend-websecure.tls=true
+      - traefik.http.routers.3dblend-websecure.tls.certresolver=mytlschallenge
+      - traefik.http.routers.3dblend-websecure.service=3dblend-web
+      - traefik.http.routers.3dblend-web.service=3dblend-web
+      - traefik.http.services.3dblend-web.loadbalancer.server.port=3000
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-blend}:${POSTGRES_PASSWORD:-blend}@db:5432/${POSTGRES_DB:-blend}?schema=public
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
