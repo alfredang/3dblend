@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Logo } from "./Logo";
-import { Coins } from "lucide-react";
+import { Coins, LayoutDashboard } from "lucide-react";
 import { SignOutButton } from "./SignOutButton";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -34,7 +34,7 @@ export async function Navbar() {
                 <span className="text-muted">credits</span>
                 <span className="ml-1 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] uppercase tracking-wide text-accent">{user.plan}</span>
               </Link>
-              <Link href="/studio" className="btn-primary">New model</Link>
+              <Link href={user.isAdmin ? "/admin" : "/account"} className="btn-primary"><LayoutDashboard className="h-4 w-4" />Dashboard</Link>
               <SignOutButton />
             </>
           ) : (
