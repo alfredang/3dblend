@@ -6,6 +6,10 @@ Describe an object in the chat, get back a **watertight, printable STL** plus a 
 
 Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 
+## Live Demo
+
+**https://3dblend.tertiaryinfotech.com** — hosted on Hostinger via Coolify. Every push to `main` is deployed automatically through a GitHub webhook.
+
 ![3DBlend — home screen](screenshot.png)
 
 ## Features
@@ -97,15 +101,20 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
 | `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
 
-## Deploy on Hostinger with Coolify
+## Deploy on Hostinger with Coolify (CI/CD)
 
-1. In Coolify, **New Resource → Docker Compose**, point it at this repository (`docker-compose.yml` is at the root). Coolify builds the multi‑stage `Dockerfile` (Next.js standalone output, ~200 MB image).
-2. Set the environment variables above in the resource's *Environment* tab (`POSTGRES_PASSWORD`, `DEEPSEEK_API_KEY`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, …). The compose file wires the app to the bundled `db` service and persists `pgdata` and `storage` volumes.
-3. Attach your domain to the `web` service (port 3000); Coolify provisions TLS.
-4. On every boot the entrypoint runs `prisma db push` so the schema is always in sync; sample models are seeded on the first page view.
-5. Optional: add a Coolify *Scheduled Task* that runs daily:
-   `curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain/api/cron/reset-credits`
-6. Optional: point a Stripe webhook at `https://your-domain/api/billing/webhook` for `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`.
+The production instance was created through the Coolify API; the same steps work from the UI:
+
+1. **New Resource → Public Repository**, URL `https://github.com/alfredang/3dblend`, branch `main`, build pack **Docker Compose**, compose file `/docker-compose.yml`. Coolify builds the multi‑stage `Dockerfile` (Next.js standalone output) and brings up the bundled PostgreSQL 16 service with persistent `pgdata` and `storage` volumes.
+2. Set the environment variables above in the resource's *Environment* tab (`POSTGRES_PASSWORD`, `DEEPSEEK_API_KEY`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`). Coolify pre‑creates the keys from the compose file.
+3. Domain for the `web` service: `https://3dblend.tertiaryinfotech.com:3000` (the `:3000` tells the Traefik proxy which container port to route to; the service is not published on the host). Coolify provisions TLS.
+4. **CI/CD webhook**: in the GitHub repo, *Settings → Webhooks → Add*, payload URL `https://<coolify-host>/webhooks/source/github/events/manual`, content type `application/json`, secret = the application's *Manual webhook secret* (Coolify → app → Webhooks), event *push*. With *Auto Deploy* enabled, every push to `main` redeploys. Manual trigger: `POST /api/v1/deploy?uuid=<app-uuid>` with a Coolify API token.
+5. On every boot the entrypoint runs `prisma db push` so the schema is always in sync; sample models are seeded on the first page view.
+6. Optional: a Coolify *Scheduled Task* that runs daily:
+   `curl -fsS -H "x-cron-secret: $CRON_SECRET" https://3dblend.tertiaryinfotech.com/api/cron/reset-credits`
+7. Optional: point a Stripe webhook at `https://3dblend.tertiaryinfotech.com/api/billing/webhook` for `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`.
+
+Local run of the same stack: `docker compose -f docker-compose.yml -f docker-compose.local.yml up --build` (the override publishes port 3000).
 
 Health check: `GET /api/health`.
 
