@@ -1,0 +1,6 @@
+# Local override that publishes the web port:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+services:
+  web:
+    ports:
+      - "3000:3000"

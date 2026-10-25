@@ -1,11 +1,15 @@
-# Coolify: deploy as a "Docker Compose" resource. Set the secrets in Coolify's
-# environment tab (they are referenced here with ${VAR}).
+# Coolify: deployed as a "Docker Compose" resource. Secrets live in Coolify's
+# environment tab (referenced here with ${VAR}). The web service is not
+# published on the host; Coolify's Traefik proxy routes the domain to port 3000.
+# Local run without Coolify:  docker compose up --build  then open
+# http://localhost:3000 after adding `ports: ["3000:3000"]` to the web service
+# (or use docker-compose.local.yml below).
 services:
   web:
     build: .
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-blend}:${POSTGRES_PASSWORD:-blend}@db:5432/${POSTGRES_DB:-blend}?schema=public
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
