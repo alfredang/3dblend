@@ -29,3 +29,29 @@ export function toBinarySTL(mesh: BuiltMesh, name = "3dblend"): Buffer {
   }
   return buf;
 }
+
+/** Decode a binary STL back into an indexed mesh (vertices are welded exactly). */
+export function parseBinarySTL(buf: Buffer): { positions: Float32Array; indices: Uint32Array; numTri: number } {
+  const numTri = buf.readUInt32LE(80);
+  const map = new Map<string, number>();
+  const pos: number[] = [];
+  const idx = new Uint32Array(numTri * 3);
+  let off = 84;
+  for (let t = 0; t < numTri; t++) {
+    off += 12; // skip normal
+    for (let v = 0; v < 3; v++) {
+      const x = buf.readFloatLE(off), y = buf.readFloatLE(off + 4), z = buf.readFloatLE(off + 8);
+      off += 12;
+      const key = `${x},${y},${z}`;
+      let i = map.get(key);
+      if (i === undefined) {
+        i = pos.length / 3;
+        map.set(key, i);
+        pos.push(x, y, z);
+      }
+      idx[t * 3 + v] = i;
+    }
+    off += 2;
+  }
+  return { positions: Float32Array.from(pos), indices: idx, numTri };
+}

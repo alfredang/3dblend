@@ -18,6 +18,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
 - **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).
 - **Printability report** — build‑volume fit, bed contact %, overhang %, wall‑thickness heuristic, shell count, filament grams and print‑time estimates.
+- **3MF export** — on‑demand `.3mf` (units, indexed mesh, metadata) for Bambu Studio, PrusaSlicer and Cura, derived from the stored STL and cached.
 - **Blender‑friendly export** — a `.blender.py` per model that recreates the design with `bmesh` primitives, EXACT booleans, arrays and mirrors, in millimetres, sitting on the build plate.
 - **3D viewer** — React Three Fiber, orbit/zoom, auto‑rotate, grid and contact shadows.
 - **Gallery & social** — publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
@@ -56,7 +57,8 @@ Key files:
 | `src/agent/spec.ts` | DSL schema (zod) and semantic validation (refs, cycles, size limits) |
 | `src/agent/kernel.ts` | Manifold builder → positions/indices, volume, bbox, genus, shells |
 | `src/agent/checks.ts` | Printability analysis (errors block, warnings inform) |
-| `src/agent/stl.ts` | Binary STL writer |
+| `src/agent/stl.ts` | Binary STL writer + parser |
+| `src/agent/threemf.ts` | 3MF (zip + XML) writer |
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair loop |
@@ -127,6 +129,7 @@ Health check: `GET /api/health`.
 | `/api/projects` | GET / POST | list / create chat projects |
 | `/api/chat` | POST (SSE) | run the agent for a project; events `status`, `message`, `model`, `credits`, `error` |
 | `/api/models/:id/stl` | GET | binary STL (`?download=1` counts a download) |
+| `/api/models/:id/3mf` | GET | 3MF package (`?download=1` counts a download) |
 | `/api/models/:id/blender` | GET | Blender Python script |
 | `/api/models/:id/like` | POST | toggle thumbs‑up |
 | `/api/models/:id/publish` | POST | toggle gallery visibility, edit title/description |

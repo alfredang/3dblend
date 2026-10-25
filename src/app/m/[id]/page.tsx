@@ -76,6 +76,7 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
 
           <div className="flex flex-col gap-2">
             <a href={`/api/models/${model.id}/stl?download=1`} className="btn-primary !py-3"><Download className="h-4 w-4" /> Download STL</a>
+            <a href={`/api/models/${model.id}/3mf?download=1`} className="btn-ghost !py-3" title="3MF for Bambu Studio, PrusaSlicer, Cura"><Download className="h-4 w-4" /> Download 3MF</a>
             <a href={`/api/models/${model.id}/blender`} className="btn-ghost !py-3"><FileCode2 className="h-4 w-4" /> Blender script (.py)</a>
             <RemixButton modelId={model.id} />
             {isOwner && model.project && <Link href={`/studio/${model.project.id}`} className="btn-ghost !py-3"><Sparkles className="h-4 w-4" /> Continue in studio</Link>}

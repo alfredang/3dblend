@@ -240,6 +240,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 </div>
                 <div className="flex gap-2">
                   <a href={`/api/models/${current.id}/stl?download=1`} className="btn-primary !py-2 text-xs"><Download className="h-4 w-4" />STL</a>
+                  <a href={`/api/models/${current.id}/3mf?download=1`} className="btn-ghost !py-2 text-xs" title="3MF for Bambu Studio, PrusaSlicer, Cura"><Download className="h-4 w-4" />3MF</a>
                   <a href={`/api/models/${current.id}/blender`} className="btn-ghost !py-2 text-xs"><FileCode2 className="h-4 w-4" />Blender .py</a>
                 </div>
               </div>

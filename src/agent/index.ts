@@ -3,5 +3,6 @@ export * from "./kernel";
 export * from "./checks";
 export * from "./stl";
 export * from "./blender";
+export * from "./threemf";
 export * from "./llm";
 export * from "./harness";
