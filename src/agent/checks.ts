@@ -80,7 +80,8 @@ export function analysePrintability(mesh: BuiltMesh, printer: PrinterProfile = D
   if (meanThickness > 0 && meanThickness < printer.minWall * 0.6) errors.push(`walls average ~${fmt(meanThickness)} mm, thinner than the ${printer.minWall} mm minimum — thicken walls and features`);
   else if (meanThickness < printer.minWall) warnings.push(`thin features (~${fmt(meanThickness)} mm average); keep every wall ≥ ${printer.minWall} mm`);
 
-  if (mesh.shells > 1) warnings.push(`model has ${mesh.shells} disconnected pieces; they will print as separate objects — join them if that is not intended`);
+  if (mesh.shells > 3) errors.push(`model is ${mesh.shells} disconnected pieces — parts are floating instead of fused; overlap every part with its neighbour by ≥ 1 mm`);
+  else if (mesh.shells > 1) warnings.push(`model has ${mesh.shells} disconnected pieces; they will print as separate objects — join them if that is not intended`);
 
   const volumeCm3 = volume / 1000;
   const estGramsPLA = volumeCm3 * 1.24 * 0.35 + (surfaceArea / 100) * 0.08; // 35% effective infill + walls

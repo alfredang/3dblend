@@ -230,9 +230,12 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                   {s.estGramsPLA !== undefined && <span><b className="text-fg">~{s.estGramsPLA < 1 ? s.estGramsPLA.toFixed(1) : Math.round(s.estGramsPLA)} g</b> PLA</span>}
                   {s.estPrintMinutes !== undefined && <span><b className="text-fg">~{Math.floor(s.estPrintMinutes / 60)}h {s.estPrintMinutes % 60}m</b></span>}
                   {s.triangles !== undefined && <span><b className="text-fg">{s.triangles.toLocaleString()}</b> tris</span>}
-                  <span className={cn("inline-flex items-center gap-1", s.ok === false ? "text-accent-3" : "text-accent-2")}>
+                  <span
+                    className={cn("inline-flex items-center gap-1", s.ok === false ? "text-accent-3" : "text-accent-2")}
+                    title={s.ok === false ? `Printability checks failed:\n${(s.errors ?? []).join("\n")}` : "Watertight mesh, passed all printability checks"}
+                  >
                     {s.ok === false ? <AlertTriangle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                    {s.ok === false ? "needs attention" : "watertight · printable"}
+                    {s.ok === false ? "needs attention — see below" : "watertight · printable"}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -245,6 +248,16 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                   {s.printNotes && <p className="text-muted">🖨 {s.printNotes}</p>}
                   {s.errors?.map((w) => <p key={w} className="text-accent-3">✖ {w}</p>)}
                   {s.warnings?.map((w) => <p key={w} className="text-accent-3/80">⚠ {w}</p>)}
+                  {s.ok === false && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => send(`Fix these printability problems and keep everything else the same:\n${[...(s.errors ?? []), ...(s.warnings ?? [])].map((e) => `- ${e}`).join("\n")}\nMake sure every part overlaps its neighbour by at least 1 mm so the model is one connected solid, and that the largest flat face sits at the lowest point.`)}
+                      className="btn-ghost mt-1 !px-3 !py-1.5 text-xs text-accent-3 border-accent-3/40"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" /> Ask the agent to fix these (1 credit)
+                    </button>
+                  )}
                 </div>
               )}
             </div>

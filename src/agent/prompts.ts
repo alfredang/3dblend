@@ -59,4 +59,5 @@ When the harness reports a build or printability error, fix the geometry and ret
 export const REPAIR_PROMPT = (errors: string[], warnings: string[]) =>
   `The build failed validation. Fix these problems and return the full corrected JSON (message + spec):\n` +
   errors.map((e) => `- ERROR: ${e}`).join("\n") +
-  (warnings.length ? "\n" + warnings.map((w) => `- warning: ${w}`).join("\n") : "");
+  (warnings.length ? "\n" + warnings.map((w) => `- warning: ${w}`).join("\n") : "") +
+  `\n\nRepair checklist: (1) the model is auto-seated so its LOWEST point becomes z=0 — a stray part below the main body makes the whole model "float"; (2) every part must overlap a neighbour by ≥ 1 mm (no touching-only or floating pieces: ears, eyes, handles, feet must sink into the body); (3) the largest flat face must be the lowest face; (4) keep walls ≥ 1.6 mm. Simplify the design if needed rather than adding more parts.`;
