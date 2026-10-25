@@ -9,7 +9,26 @@ import { SAMPLE_SPECS } from "../../prisma/samples";
  * Idempotently create the demo accounts and the six featured sample models.
  * Safe to call on every boot / first page view: it exits early once seeded.
  */
+/** Admin / test accounts come from env so no real password lives in the repo. */
+export async function ensureAccounts(log: (s: string) => void = () => {}) {
+  const specs = [
+    { email: "admin@3dblend.app", name: "3DBlend Admin", password: process.env.SEED_ADMIN_PASSWORD, isAdmin: true, plan: "PRO" as const, credits: 1000 },
+    { email: "test@3dblend.app", name: "Test User", password: process.env.SEED_TEST_PASSWORD, isAdmin: false, plan: "FREE" as const, credits: 10 },
+  ];
+  for (const a of specs) {
+    if (!a.password) continue;
+    const passwordHash = await bcrypt.hash(a.password, 10);
+    await prisma.user.upsert({
+      where: { email: a.email },
+      update: { passwordHash, isAdmin: a.isAdmin },
+      create: { email: a.email, name: a.name, passwordHash, isAdmin: a.isAdmin, plan: a.plan, credits: a.credits },
+    });
+    log(`✓ account ${a.email}${a.isAdmin ? " (admin)" : ""}`);
+  }
+}
+
 export async function seedSamples(log: (s: string) => void = () => {}) {
+  await ensureAccounts(log);
   const pw = await bcrypt.hash("demo1234", 10);
   const demo = await prisma.user.upsert({
     where: { email: "demo@3dblend.app" },
@@ -59,7 +78,7 @@ export async function seedSamples(log: (s: string) => void = () => {}) {
 }
 
 let seeding: Promise<number> | null = null;
-/** Called from the home page when the gallery is empty (SEED_ON_BOOT != "0"). */
+/** Called from the home page; runs once per process (SEED_ON_BOOT != "0"). Idempotent. */
 export function ensureSeeded() {
   if (process.env.SEED_ON_BOOT === "0") return Promise.resolve(0);
   if (!seeding) seeding = seedSamples(console.log).catch((e) => { console.error("[seed]", e); seeding = null; return 0; });

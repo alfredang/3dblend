@@ -26,6 +26,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
 - **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, Stripe subscription checkout + webhook (optional), monthly top‑up cron endpoint.
+- **Admin dashboard** — `/admin` for users flagged `isAdmin`: totals, users (plan, credits top‑ups, grant/revoke admin) and models (feature, publish, delete).
 - **Sample content** — six featured models (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
 
 ## Architecture
@@ -91,7 +92,7 @@ npm run db:seed                 # demo users + 6 featured models (optional; also
 npm run dev                     # http://localhost:3000
 ```
 
-Demo login: `demo@3dblend.app` / `demo1234` (Pro plan, 1000 credits).
+Demo login: `demo@3dblend.app` / `demo1234` (Pro plan, 1000 credits). With `SEED_ADMIN_PASSWORD` / `SEED_TEST_PASSWORD` set, `admin@3dblend.app` and `test@3dblend.app` are also available (passwords from the env).
 
 Try the harness without the web app:
 
@@ -114,6 +115,7 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` | | enable paid upgrades; without them the UI shows “Coming soon” |
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
 | `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
+| `SEED_ADMIN_PASSWORD`, `SEED_TEST_PASSWORD` | | when set, `admin@3dblend.app` (admin, Pro) and `test@3dblend.app` (Free) are created/updated on boot |
 
 ## Deploy on Hostinger with Coolify (CI/CD)
 

@@ -9,7 +9,7 @@ import { ThemeToggle } from "./ThemeToggle";
 export async function Navbar() {
   const session = await auth();
   const user = session?.user?.id
-    ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { credits: true, plan: true, name: true, email: true } })
+    ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { credits: true, plan: true, name: true, email: true, isAdmin: true } })
     : null;
 
   return (
@@ -21,6 +21,7 @@ export async function Navbar() {
             <Link href="/gallery" className="hover:text-fg">Gallery</Link>
             <Link href="/pricing" className="hover:text-fg">Pricing</Link>
             <Link href="/studio" className="hover:text-fg">Studio</Link>
+            {user?.isAdmin && <Link href="/admin" className="text-accent-2 hover:text-fg">Admin</Link>}
           </nav>
         </div>
         <div className="flex items-center gap-3">

@@ -26,6 +26,7 @@ model User {
   passwordHash     String
   image            String?
   plan             Plan     @default(FREE)
+  isAdmin          Boolean  @default(false)
   credits          Int      @default(10)
   creditsResetAt   DateTime @default(now())
   stripeCustomerId String?  @unique

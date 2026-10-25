@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const session = await auth();
   let featured = await listPublicModels({ featured: true, take: 6, viewerId: session?.user?.id });
-  if (featured.length === 0 && (await ensureSeeded()) > 0) {
+  // Runs once per server process: ensures env-driven accounts and sample models exist.
+  if ((await ensureSeeded()) > 0 && featured.length === 0) {
     featured = await listPublicModels({ featured: true, take: 6, viewerId: session?.user?.id });
   }
 

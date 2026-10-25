@@ -48,3 +48,11 @@ export async function requireUserId() {
   if (!session?.user?.id) throw new Response("Unauthorized", { status: 401 });
   return session.user.id;
 }
+
+/** Returns the user if they are an admin, otherwise null. */
+export async function currentAdmin() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { id: true, isAdmin: true, email: true } });
+  return user?.isAdmin ? user : null;
+}
