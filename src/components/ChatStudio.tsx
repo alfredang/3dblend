@@ -8,6 +8,8 @@ import { Markdown } from "./Markdown";
 import { cn, colorFor } from "@/lib/utils";
 import { COST } from "@/lib/plans";
 import { PrintSetupBar, usePrintSetup } from "./PrintSetup";
+import { ShapeEditor } from "./ShapeEditor";
+import { Shapes } from "lucide-react";
 
 export interface StudioMessage { id: string; role: "user" | "assistant"; content: string; modelId?: string | null; imageUrl?: string; attachmentName?: string; meshStats?: { size: number[]; triangles: number } }
 
@@ -76,6 +78,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
   const router = useRouter();
   const [setup, setSetup] = usePrintSetup();
   const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [editing, setEditing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canAttachFiles = plan !== "FREE";
@@ -262,7 +265,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
               rows={3}
               placeholder={models.length ? "Suggest a change… e.g. make the walls 3 mm, add a lip, round the corners" : "Describe what you want to print — the object, its purpose and rough size…"}
               className="min-h-[96px] w-full resize-none bg-transparent px-4 pb-12 pt-3 text-[15px] leading-relaxed text-fg outline-none placeholder:text-muted"
-              disabled={busy}
+              disabled={busy || editing}
             />
             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -281,7 +284,22 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
 
       {/* Viewer column */}
       <section className="card relative flex min-h-[520px] flex-col overflow-hidden">
-        {current ? (
+        {current && editing ? (
+          <ShapeEditor
+            modelId={current.id}
+            stlUrl={`/api/models/${current.id}/stl`}
+            size={s.size}
+            setup={setup}
+            onCancel={() => setEditing(false)}
+            onApplied={(m) => {
+              const mm = m as StudioModel;
+              setModels((ms) => [...ms, mm]);
+              setCurrent(mm);
+              setEditing(false);
+              setMessages((xs) => [...xs, { id: `edit-u-${mm.id}`, role: "user", content: "Manual shape edit" }, { id: `edit-a-${mm.id}`, role: "assistant", content: `Applied your manual edit as version ${mm.version}. You can keep editing by hand or ask me for changes.`, modelId: mm.id }]);
+            }}
+          />
+        ) : current ? (
           <>
             <ModelViewer key={current.id} url={`/api/models/${current.id}/stl`} size={s.size} color={colorFor(current.id)} className="flex-1" />
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-4">
@@ -304,6 +322,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 )}
               </div>
               <div className="pointer-events-auto flex items-center gap-2">
+                <button onClick={() => setEditing(true)} className="glass inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs" title="Add shapes or cut holes by hand (free, no credits)"><Shapes className="h-4 w-4" />Edit shapes</button>
                 <button onClick={togglePublic} className={cn("glass inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs", current.isPublic ? "text-accent-2" : "text-muted")} title={freePlan ? "Free plan: models are public in the gallery (upgrade to keep them private)" : current.isPublic ? "Public in gallery — click to make private" : "Private — click to publish to the gallery"}>
                   {current.isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}{current.isPublic ? (freePlan ? "Public (Free plan)" : "Public") : "Publish"}
                 </button>

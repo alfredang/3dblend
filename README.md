@@ -15,6 +15,7 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 ## Features
 
 - **Chat‑to‑STL studio** — large multi‑line composer (Enter for a new line, ⌘/Ctrl+Enter to send) with streaming status while the agent designs, builds, checks, repairs and optimises the model; every version is kept and switchable.
+- **Edit mode (Tinkercad‑style)** — in the studio, "Edit shapes" lets you drop boxes, cylinders, spheres, cones, rings and wedges onto the current model, move/rotate/scale them with gizmos or numeric fields, mark each as solid or hole, and apply: the shapes are merged into the model's spec and rebuilt by the exact kernel as a new version (free, no credits). Solids are trimmed at the bed plane; the result stays parametric so the agent can keep editing it.
 - **Modify existing models** (Starter/Pro) — upload an STL or 3MF and it becomes `{op:"mesh"}` in the agent's spec: a watertight base solid (via Manifold) the agent can cut, extend, scale or move; upload a 3DBlend Blender script and its embedded spec is restored for further editing.
 - **Reference images and PDFs** (Starter/Pro) — attach a photo, sketch or drawing with the **+** button; DeepSeek V4.1 Flash sees the image (PDFs are rendered server‑side and their text extracted) and reproduces the silhouette, proportions and labelled dimensions as a printable solid.
 - **Brief enrichment** — short requests are first expanded by the agent into a precise design brief (explicit dimensions, fits, features, bed orientation); the assumptions it made are shown to the user and the brief is stored with the model.
@@ -81,6 +82,7 @@ Key files:
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
+| `src/lib/editor.ts` / `src/components/ShapeEditor.tsx` | Manual shape editor model and the 3D edit‑mode UI (TransformControls gizmos) |
 | `src/lib/security.ts` | Turnstile verification, honeypot, in‑memory rate limiter |
 | `src/lib/verification.ts` | Email verification tokens and sending |
 | `src/lib/settings.ts` | DB‑backed integration settings with env fallback and AES‑GCM‑encrypted secrets |
@@ -164,6 +166,7 @@ Health check: `GET /api/health`.
 | `/api/models/:id/like` | POST | toggle thumbs‑up |
 | `/api/models/:id/publish` | POST | toggle gallery visibility, edit title/description |
 | `/api/models/:id/remix` | POST | copy a public model into a new project of yours |
+| `/api/models/:id/edit` | POST | manual shape edit: merge `{ shapes[] }` into the spec, rebuild, save as a new version |
 | `/api/billing/checkout` | POST | create a HitPay recurring billing for `STARTER` / `PRO`, returns the hosted checkout URL |
 | `/api/billing/return` | GET | HitPay redirect target; re-verifies the subscription with HitPay's API |
 | `/api/billing/webhook` | POST | HitPay callbacks (event webhooks with `Hitpay-Signature`, or legacy `hmac` form callbacks) |
