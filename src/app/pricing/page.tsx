@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function PricingPage() {
   const session = await auth();
   const user = session?.user?.id ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { plan: true } }) : null;
-  const billingReady = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_STARTER && process.env.STRIPE_PRICE_PRO);
+  const billingReady = Boolean(process.env.HITPAY_API_KEY);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
@@ -40,7 +40,8 @@ export default async function PricingPage() {
           );
         })}
       </div>
-      {!billingReady && <p className="mt-8 text-center text-xs text-muted">Payments go live once Stripe keys are configured in the environment.</p>}
+      {!billingReady && <p className="mt-8 text-center text-xs text-muted">Payments go live once HitPay is configured in the environment.</p>}
+      {billingReady && <p className="mt-8 text-center text-xs text-muted">Secure checkout by HitPay — cards, PayNow and more. Cancel anytime from your account.</p>}
       <div className="card mt-14 grid gap-6 p-8 md:grid-cols-3">
         {[
           ["What is a credit?", `Generating a new model costs ${COST.generate} credits and each edit of an existing model costs ${COST.refine} credit, regardless of how many repair or optimisation passes the harness runs internally. A question-only reply costs ${COST.chat} credit and failed generations are refunded.`],

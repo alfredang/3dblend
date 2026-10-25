@@ -26,10 +26,11 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **FAQ and contact footer** — credits per generation, formats, printers, licensing; contact details come from `src/lib/site.ts`.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
-- **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, Stripe subscription checkout + webhook (optional), monthly top‑up cron endpoint.
+- **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, monthly top‑ups.
+- **HitPay subscriptions** — Starter/Pro checkout on HitPay's hosted page (cards, PayNow and more); activation is verified against HitPay's API, every charge auto‑generates a numbered invoice (PDF download from the account page) and resets credits; users can cancel anytime and keep access until the paid period ends; a daily reconciliation keeps subscriptions in sync even if a webhook is missed.
 - **Remix attribution** — remixing a gallery model records the original (`remixOfId`) and a "Title by Author" snapshot that every later version inherits; shown on the share page, in the studio, on gallery cards and inside the 3MF metadata (CC BY 4.0).
 - **Visibility by plan** — Free‑plan models are always public in the gallery; Starter and Pro models are private until the owner publishes them (`defaultVisibility` / `canMakePrivate` in `src/lib/plans.ts`).
-- **Admin dashboard** — `/admin` for users flagged `isAdmin`: totals, users (plan, credits top‑ups, grant/revoke admin) and models (feature, publish, delete).
+- **Admin backend** — `/admin` (users flagged `isAdmin`): overview KPIs, all users with search and pagination (plan, credit top‑ups, grant/revoke admin), every subscription and invoice (sync, cancel, PDF), and gallery moderation (feature, hide, delete).
 - **Sample content** — six featured models (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
 
 ## Architecture
@@ -115,7 +116,7 @@ npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, w
 | `AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
 | `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL` | ✅ | public URL (share links, Stripe redirects) |
 | `STORAGE_DIR` | | where STL / .py files live (`/data/storage` in Docker, mount a volume) |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` | | enable paid upgrades; without them the UI shows “Coming soon” |
+| `HITPAY_API_KEY`, `HITPAY_SALT`, `HITPAY_WEBHOOK_SALT`, `HITPAY_SANDBOX`, `HITPAY_CURRENCY` | | enable paid upgrades via HitPay recurring billing (sandbox with `HITPAY_SANDBOX=1`); without a key the UI shows “Coming soon” |
 | `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
 | `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
 | `SEED_ADMIN_PASSWORD`, `SEED_TEST_PASSWORD` | | when set, `admin@3dblend.app` (admin, Pro) and `test@3dblend.app` (Free) are created/updated on boot |
@@ -152,18 +153,22 @@ Health check: `GET /api/health`.
 | `/api/models/:id/like` | POST | toggle thumbs‑up |
 | `/api/models/:id/publish` | POST | toggle gallery visibility, edit title/description |
 | `/api/models/:id/remix` | POST | copy a public model into a new project of yours |
-| `/api/billing/checkout` | POST | Stripe Checkout session for `STARTER` / `PRO` |
-| `/api/billing/webhook` | POST | Stripe events → plan + credits |
+| `/api/billing/checkout` | POST | create a HitPay recurring billing for `STARTER` / `PRO`, returns the hosted checkout URL |
+| `/api/billing/return` | GET | HitPay redirect target; re-verifies the subscription with HitPay's API |
+| `/api/billing/webhook` | POST | HitPay callbacks (event webhooks with `Hitpay-Signature`, or legacy `hmac` form callbacks) |
+| `/api/billing/cancel`, `/api/billing/sync` | POST | cancel at HitPay / re-check status |
+| `/api/invoices/:id/pdf` | GET | invoice PDF (owner or admin) |
+| `/api/admin/users`, `/api/admin/models`, `/api/admin/subscriptions` | PATCH/DELETE | admin actions |
 | `/api/cron/reset-credits` | GET | monthly credit top‑up (secret header) |
 | `/api/health` | GET | DB connectivity |
 
 ## Data model
 
-`User` (plan, credits, Stripe ids) → `Project` → `Message` (role, content, optional `modelId`, optional reference `imagePath` / `attachmentPath` / extracted `attachmentText`) and `Model` (spec JSON, stats JSON, `stlPath`, `blenderPath`, `isPublic`, `featured`, counters) with `Like` (user × model) and `CreditTransaction` (audit log).
+`User` (plan, credits, isAdmin) → `Subscription` (HitPay recurring billing, status lifecycle) → `Invoice` (numbered, one per charge); `User` → `Project` → `Message` (role, content, optional `modelId`, optional reference `imagePath` / `attachmentPath` / extracted `attachmentText`) and `Model` (spec JSON, stats JSON, `stlPath`, `blenderPath`, `isPublic`, `featured`, counters) with `Like` (user × model) and `CreditTransaction` (audit log).
 
 ## Tech stack
 
-Next.js 16 (App Router, standalone output) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL 16 · Auth.js v5 · OpenAI SDK → DeepSeek V4.1 Flash (text + vision) · manifold‑3d (WASM) · three.js / @react‑three/fiber / drei · three‑mesh‑bvh · pdfjs‑dist + @napi‑rs/canvas · fflate · Stripe · Docker / Coolify.
+Next.js 16 (App Router, standalone output) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL 16 · Auth.js v5 · OpenAI SDK → DeepSeek V4.1 Flash (text + vision) · manifold‑3d (WASM) · three.js / @react‑three/fiber / drei · three‑mesh‑bvh · pdfjs‑dist + @napi‑rs/canvas · pdf‑lib · fflate · HitPay · Docker / Coolify.
 
 ## Acknowledgements
 

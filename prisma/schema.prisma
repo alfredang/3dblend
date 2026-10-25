@@ -29,14 +29,86 @@ model User {
   isAdmin          Boolean  @default(false)
   credits          Int      @default(10)
   creditsResetAt   DateTime @default(now())
-  stripeCustomerId String?  @unique
-  stripeSubId      String?  @unique
   createdAt        DateTime @default(now())
 
-  projects     Project[]
-  models       Model[]
-  likes        Like[]
-  transactions CreditTransaction[]
+  projects      Project[]
+  models        Model[]
+  likes         Like[]
+  transactions  CreditTransaction[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+/// A HitPay recurring-billing subscription for a paid plan.
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  plan              Plan
+  status            SubscriptionStatus @default(PENDING)
+  provider          String             @default("hitpay")
+  providerPlanId    String?
+  providerBillingId String?            @unique
+  amount            Float
+  currency          String             @default("SGD")
+  cycle             String             @default("monthly")
+  startDate         DateTime?
+  currentPeriodEnd  DateTime?
+  timesCharged      Int                @default(0)
+  cancelledAt       DateTime?
+  endsAt            DateTime?
+  lastSyncedAt      DateTime?
+  raw               Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([userId, status])
+}
+
+/// Auto-generated invoice for every successful subscription charge.
+model Invoice {
+  id                String        @id @default(cuid())
+  number            String        @unique
+  userId            String
+  subscriptionId    String?
+  plan              Plan
+  amount            Float
+  currency          String        @default("SGD")
+  status            String        @default("paid")
+  description       String
+  periodStart       DateTime
+  periodEnd         DateTime
+  paidAt            DateTime
+  providerPaymentId String?       @unique
+  createdAt         DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, paidAt])
+}
+
+/// Cache of HitPay subscription-plan ids per plan/price so we create them once.
+model ProviderPlan {
+  id             String   @id @default(cuid())
+  provider       String   @default("hitpay")
+  plan           Plan
+  amount         Float
+  currency       String
+  providerPlanId String
+  createdAt      DateTime @default(now())
+
+  @@unique([provider, plan, amount, currency])
 }
 
 model Project {

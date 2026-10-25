@@ -26,8 +26,10 @@ export async function refundCredits(userId: string, amount: number, reason: stri
 /** Monthly top-up for paid plans. Called by the cron endpoint. */
 export async function resetMonthlyCredits() {
   const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  // Users on paid plans without a live HitPay subscription (admin-granted plans) get a 30-day reset here;
+  // subscribed users are topped up when HitPay reports each charge.
   const due = await prisma.user.findMany({
-    where: { plan: { in: ["STARTER", "PRO"] }, creditsResetAt: { lte: cutoff } },
+    where: { plan: { in: ["STARTER", "PRO"] }, creditsResetAt: { lte: cutoff }, subscriptions: { none: { status: { in: ["ACTIVE", "PAST_DUE"] } } } },
     select: { id: true, plan: true },
   });
   for (const u of due) {

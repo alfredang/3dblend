@@ -19,7 +19,7 @@ export function UpgradeButton({ plan, signedIn, ready }: { plan: "STARTER" | "PR
   return (
     <div>
       <button onClick={go} disabled={busy || (signedIn && !ready)} className={`${plan === "STARTER" ? "btn-primary" : "btn-ghost"} w-full`}>
-        {busy ? "Redirecting…" : signedIn && !ready ? "Coming soon" : `Upgrade to ${plan === "STARTER" ? "Starter" : "Pro"}`}
+        {busy ? "Redirecting to HitPay…" : signedIn && !ready ? "Coming soon" : `Upgrade to ${plan === "STARTER" ? "Starter" : "Pro"}`}
       </button>
       {msg && <p className="mt-2 text-xs text-accent-3">{msg}</p>}
     </div>
