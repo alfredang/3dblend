@@ -1,17 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
+  output: "standalone",
+  serverExternalPackages: ["manifold-3d", "@prisma/client", "bcryptjs"],
+  outputFileTracingIncludes: { "/**": ["./node_modules/manifold-3d/**"] },
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
 };
 
 export default nextConfig;

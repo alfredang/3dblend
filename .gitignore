@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 3dblend
+/storage
+/out
+
+# playwright artifacts
+/.playwright-mcp
+!.env.example

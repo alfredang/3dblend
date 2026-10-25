@@ -1,36 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 3DBlend — AI‑generated, 3D‑printable models from a chat
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js) ![React](https://img.shields.io/badge/React-19-61dafb?logo=react) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql) ![Prisma](https://img.shields.io/badge/Prisma-6-2d3748?logo=prisma) ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek%20V4.1%20Flash-4b5cff) ![Manifold](https://img.shields.io/badge/Geometry-Manifold%20(WASM)-19d3c5) ![Docker](https://img.shields.io/badge/Deploy-Coolify%20%2F%20Docker-2496ed?logo=docker)
 
-First, run the development server:
+Describe an object in the chat, get back a **watertight, printable STL** plus a **Blender Python script** that rebuilds it with native primitives and booleans. Preview it in 3D, refine it in conversation, publish it to a gallery with likes and social sharing, and download it. Credit‑based plans: Free (10 credits), Starter (100/month), Pro (1000/month).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
+
+![3DBlend — home screen](screenshot.png)
+
+## Features
+
+- **Chat‑to‑STL studio** — streaming status while the agent designs, builds, checks and repairs the model; every version is kept and switchable.
+- **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
+- **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).
+- **Printability report** — build‑volume fit, bed contact %, overhang %, wall‑thickness heuristic, shell count, filament grams and print‑time estimates.
+- **Blender‑friendly export** — a `.blender.py` per model that recreates the design with `bmesh` primitives, EXACT booleans, arrays and mirrors, in millimetres, sitting on the build plate.
+- **3D viewer** — React Three Fiber, orbit/zoom, auto‑rotate, grid and contact shadows.
+- **Gallery & social** — publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
+- **Accounts & credits** — email/password auth (Auth.js), atomic credit deduction, refunds on failure, Stripe subscription checkout + webhook (optional), monthly top‑up cron endpoint.
+- **Sample content** — six featured models (phone stand, honeycomb pencil cup, planter, headphone hook, spur gear, twisted vase) are built by the real kernel on first run.
+
+## Architecture
+
+```
+┌────────────┐   SSE    ┌──────────────────────┐    OpenAI-compatible    ┌───────────────────┐
+│  Next.js   │ ◄──────► │  /api/chat (harness) │ ──────────────────────► │ DeepSeek V4.1     │
+│  App Router│          │  validate → build →   │ ◄────── JSON spec ───── │ Flash             │
+│  R3F viewer│          │  check → repair loop  │                         └───────────────────┘
+└─────┬──────┘          └──────────┬───────────┘
+      │ Prisma                     │ Manifold (WASM)  →  binary STL + Blender .py
+      ▼                            ▼
+┌────────────┐          ┌──────────────────────┐
+│ PostgreSQL │          │  STORAGE_DIR volume   │
+└────────────┘          └──────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### The agent harness
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+user idea ─► LLM ─► { message, spec } ─► zod validation ─► Manifold build ─► printability checks ─► STL + .py
+                ▲                                 │                 │                   │
+                └──────── repair prompt with the exact errors ◄─────┴───────────────────┘   (max 4 attempts)
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The model never touches geometry directly. It writes a declarative **spec** in a ~20‑op CSG DSL (`cube`, `cylinder`, `sphere`, `cone`, `torus`, `roundedBox`, `extrude`, `revolve`, `union`, `difference`, `intersection`, `hull`, `translate`, `rotate`, `scale`, `mirror`, `repeat`, `radial`, `ref`/`parts`). The harness owns every side effect, which keeps generation deterministic, cheap (one LLM call per attempt, ~3 s), replayable, and safe to expose publicly.
 
-## Learn More
+Key files:
 
-To learn more about Next.js, take a look at the following resources:
+| File | Purpose |
+| --- | --- |
+| `src/agent/spec.ts` | DSL schema (zod) and semantic validation (refs, cycles, size limits) |
+| `src/agent/kernel.ts` | Manifold builder → positions/indices, volume, bbox, genus, shells |
+| `src/agent/checks.ts` | Printability analysis (errors block, warnings inform) |
+| `src/agent/stl.ts` | Binary STL writer |
+| `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
+| `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
+| `src/agent/harness.ts` | The generate → validate → build → check → repair loop |
+| `src/agent/prompts.ts` | System prompt with the DSL reference and FDM design rules |
+| `scripts/agent-cli.ts` | `npm run agent -- "a hex pencil cup"` → `out/*.stl`, `*.blender.py`, `*.spec.json` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> **Why non‑thinking mode?** DeepSeek V4.x in thinking mode spends its entire token budget reasoning about geometry and returns empty content for anything non‑trivial. The harness supplies the verification loop instead, and direct mode answers in ~3 s. Set `DEEPSEEK_THINKING=1` to opt back in.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Quick start (local)
 
-## Deploy on Vercel
+```bash
+git clone https://github.com/alfredang/3dblend.git && cd 3dblend
+npm install
+cp .env.example .env            # fill DEEPSEEK_API_KEY, DATABASE_URL, AUTH_SECRET
+docker run -d --name 3dblend-pg -e POSTGRES_USER=blend -e POSTGRES_PASSWORD=blend -e POSTGRES_DB=blend -p 5544:5432 postgres:16-alpine
+npm run db:push                 # create tables
+npm run db:seed                 # demo users + 6 featured models (optional; also happens on first page view)
+npm run dev                     # http://localhost:3000
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Demo login: `demo@3dblend.app` / `demo1234` (Pro plan, 1000 credits).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Try the harness without the web app:
+
+```bash
+npm run agent -- "a desk phone stand for a 75mm wide phone, angled 65 degrees, with a cable slot"
+# → out/phone-stand.stl, out/phone-stand.blender.py, out/phone-stand.spec.json
+```
+
+## Environment variables
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DEEPSEEK_API_KEY` | ✅ | DeepSeek API key |
+| `DEEPSEEK_BASE_URL` | | default `https://api.deepseek.com` |
+| `DEEPSEEK_MODEL` | | default `deepseek-flash` (= DeepSeek‑V4.1‑Flash) |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
+| `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL` | ✅ | public URL (share links, Stripe redirects) |
+| `STORAGE_DIR` | | where STL / .py files live (`/data/storage` in Docker, mount a volume) |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO` | | enable paid upgrades; without them the UI shows “Coming soon” |
+| `CRON_SECRET` | | protects `GET /api/cron/reset-credits` (monthly top‑ups) |
+| `SEED_ON_BOOT` | | `0` disables auto‑seeding of sample models |
+
+## Deploy on Hostinger with Coolify
+
+1. In Coolify, **New Resource → Docker Compose**, point it at this repository (`docker-compose.yml` is at the root). Coolify builds the multi‑stage `Dockerfile` (Next.js standalone output, ~200 MB image).
+2. Set the environment variables above in the resource's *Environment* tab (`POSTGRES_PASSWORD`, `DEEPSEEK_API_KEY`, `AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, …). The compose file wires the app to the bundled `db` service and persists `pgdata` and `storage` volumes.
+3. Attach your domain to the `web` service (port 3000); Coolify provisions TLS.
+4. On every boot the entrypoint runs `prisma db push` so the schema is always in sync; sample models are seeded on the first page view.
+5. Optional: add a Coolify *Scheduled Task* that runs daily:
+   `curl -fsS -H "x-cron-secret: $CRON_SECRET" https://your-domain/api/cron/reset-credits`
+6. Optional: point a Stripe webhook at `https://your-domain/api/billing/webhook` for `checkout.session.completed`, `invoice.paid`, `customer.subscription.deleted`.
+
+Health check: `GET /api/health`.
+
+## API overview
+
+| Route | Method | Description |
+| --- | --- | --- |
+| `/api/register` | POST | create account (10 free credits) |
+| `/api/auth/*` | | Auth.js credentials provider |
+| `/api/projects` | GET / POST | list / create chat projects |
+| `/api/chat` | POST (SSE) | run the agent for a project; events `status`, `message`, `model`, `credits`, `error` |
+| `/api/models/:id/stl` | GET | binary STL (`?download=1` counts a download) |
+| `/api/models/:id/blender` | GET | Blender Python script |
+| `/api/models/:id/like` | POST | toggle thumbs‑up |
+| `/api/models/:id/publish` | POST | toggle gallery visibility, edit title/description |
+| `/api/models/:id/remix` | POST | copy a public model into a new project of yours |
+| `/api/billing/checkout` | POST | Stripe Checkout session for `STARTER` / `PRO` |
+| `/api/billing/webhook` | POST | Stripe events → plan + credits |
+| `/api/cron/reset-credits` | GET | monthly credit top‑up (secret header) |
+| `/api/health` | GET | DB connectivity |
+
+## Data model
+
+`User` (plan, credits, Stripe ids) → `Project` → `Message` (role, content, optional `modelId`) and `Model` (spec JSON, stats JSON, `stlPath`, `blenderPath`, `isPublic`, `featured`, counters) with `Like` (user × model) and `CreditTransaction` (audit log).
+
+## Tech stack
+
+Next.js 16 (App Router, standalone output) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 + PostgreSQL 16 · Auth.js v5 · OpenAI SDK → DeepSeek · manifold‑3d (WASM) · three.js / @react‑three/fiber / drei · Stripe · Docker / Coolify.
+
+## Acknowledgements
+
+- [Manifold](https://github.com/elalish/manifold) — the exact mesh boolean kernel that makes watertight output possible.
+- [Blender](https://www.blender.org/) — the `.blender.py` exporter targets Blender 3.6+.
+- [Meshy AI](https://www.meshy.ai/) and [Tripo AI](https://www.tripo3d.ai/) — product inspiration for the studio / gallery experience.
+- [DeepSeek](https://www.deepseek.com/) — V4.1 Flash powers the design agent.
+
+## License
+
+MIT © Alfred Ang. Gallery models are shared by their authors under CC BY 4.0 unless stated otherwise.
