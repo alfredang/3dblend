@@ -23,9 +23,11 @@ Inspired by Meshy AI and Tripo AI, built for Blender users and FDM printers.
 - **Native agent harness** (`src/agent/`) — DeepSeek V4.1 Flash emits a tiny JSON CSG language; a deterministic kernel builds it; printability checks feed errors back for automatic repair. Runs from the CLI too.
 - **Exact geometry** — [Manifold](https://github.com/elalish/manifold) (WASM) booleans always produce watertight 2‑manifolds. Models are auto‑seated on the bed (min Z = 0, centred).
 - **Printer‑aware DFM checks** — pick a printer (generic, Bambu Lab A1 mini / A1 / P1S / X1C, Prusa, Ender, large format), nozzle and material (PLA, PETG, ABS, TPU). The agent designs for that bed and nozzle, and the report covers build‑volume fit, bed contact, overhangs, flat ceilings/bridges, a **ray‑cast local wall‑thickness map** (BVH sampling, corner‑artefact filtered), shell count, a recommended layer height, material‑specific tips, and filament/time estimates.
-- **3MF export** — on‑demand `.3mf` (units, indexed mesh, metadata) for Bambu Studio, PrusaSlicer and Cura, derived from the stored STL and cached.
+- **3MF and OBJ export** — on‑demand `.3mf` (units, indexed mesh, metadata) for Bambu Studio, PrusaSlicer and Cura, and `.obj` (millimetres, Z‑up, same frame as the STL) for Blender, Fusion and game engines; both derived from the stored STL and cached.
 - **Blender‑friendly export** — a `.blender.py` per model that recreates the design with `bmesh` primitives, EXACT booleans, arrays and mirrors, in millimetres, sitting on the build plate.
 - **3D viewer** — React Three Fiber, orbit/zoom, auto‑rotate, grid and contact shadows.
+- **Realistic render** — a *Render* toggle beside the 3D view shows the part as printed: procedural photo‑studio lighting (no HDRI download), creased smooth normals, a filament material (Matte PLA, Silk PLA, PETG) in common filament colours, a soft grounded shadow on a seamless backdrop, and FDM layer lines at the model's layer height that appear when you zoom in. *PNG* saves the current view.
+- **Two‑colour printing without an AMS** — the model page suggests filament‑swap heights (flat up‑facing plateaus, e.g. the top of a base under raised text), shows the layer split, and gives pause‑at‑height steps for Bambu Studio (`M400 U1`), PrusaSlicer (`M600`/`M601`) and Cura/Marlin (`M0`/`M600`), plus material‑pairing tips.
 - **FAQ and contact footer** — credits per generation, formats, printers, licensing; contact details come from `src/lib/site.ts`.
 - **Light and dark themes** — toggle in the navbar, remembered per browser, defaults to the OS preference; the viewer background and grid follow the theme.
 - **Gallery & social** — auto‑rotating 3D cards, publish/unpublish, thumbs‑up, view & download counters, share to X / Facebook / LinkedIn / WhatsApp / Reddit, copy link, Web Share API, *Remix in studio*.
@@ -79,6 +81,9 @@ Key files:
 | `src/app/api/messages/[id]/image` | Serves a message's reference image (owner only) |
 | `src/agent/stl.ts` | Binary STL writer + parser |
 | `src/agent/threemf.ts` | 3MF (zip + XML) writer |
+| `src/agent/obj.ts` | Wavefront OBJ writer |
+| `src/components/ModelStage.tsx` | Viewer wrapper with the 3D ⇄ Render toggle, finish/colour picker and PNG export |
+| `src/lib/colour-swap.ts` / `src/components/TwoColourGuide.tsx` | Swap‑height suggestions and the per‑slicer two‑colour guide |
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
 | `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output; `TruncatedOutputError` on token‑cap hits) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |

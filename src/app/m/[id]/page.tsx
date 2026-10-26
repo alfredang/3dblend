@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import { Download, FileCode2, Printer, Ruler, Weight, Clock, Layers, Sparkles, GitFork } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ModelViewer } from "@/components/ModelViewer";
+import { ModelStage } from "@/components/ModelStage";
+import { TwoColourGuide } from "@/components/TwoColourGuide";
+import { planColourSwap, type SwapPlan } from "@/lib/colour-swap";
+import { readFile } from "@/lib/storage";
 import { LikeButton } from "@/components/LikeButton";
 import { ShareButtons } from "@/components/ShareButtons";
 import { RemixButton } from "@/components/RemixButton";
@@ -13,7 +16,7 @@ import { Markdown } from "@/components/Markdown";
 
 export const dynamic = "force-dynamic";
 
-type Stats = { brief?: string | null; assumptions?: string[] | null; size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; tips?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string } };
+type Stats = { brief?: string | null; assumptions?: string[] | null; size?: [number, number, number]; volumeCm3?: number; estGramsPLA?: number; estPrintMinutes?: number; triangles?: number; warnings?: string[]; tips?: string[]; printNotes?: string | null; overhangPct?: number; baseContactPct?: number; minWallMm?: number; recommendedLayerHeight?: number; printer?: { name: string; nozzle: number; material: string }; setup?: { printerId?: string } };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -42,13 +45,16 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
     ? await prisma.message.findMany({ where: { projectId: model.projectId, role: "user", createdAt: { lte: model.createdAt } }, orderBy: { createdAt: "asc" }, select: { content: true, attachmentName: true } })
     : [];
   const original = history[0]?.content ?? model.prompt;
+  const layerHeight = stats.recommendedLayerHeight ?? 0.2;
+  let swapPlan: SwapPlan | null = null;
+  try { swapPlan = planColourSwap(await readFile(model.stlPath), layerHeight); } catch { /* guide is optional */ }
   const refinements = history.slice(1);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
       <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
         <div>
-          <ModelViewer url={`/api/models/${model.id}/stl`} size={stats.size} color={colorFor(model.id)} className="card aspect-[4/3] overflow-hidden lg:aspect-[16/10]" />
+          <ModelStage url={`/api/models/${model.id}/stl`} size={stats.size} color={colorFor(model.id)} title={model.title} layerHeight={layerHeight} className="card aspect-[4/3] overflow-hidden lg:aspect-[16/10]" />
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <ShareButtons url={url} title={model.title} />
             <LikeButton modelId={model.id} initialCount={model.likesCount} initialLiked={Array.isArray(model.likes) && model.likes.length > 0} />
@@ -118,11 +124,13 @@ export default async function ModelPage({ params }: { params: Promise<{ id: stri
           <div className="flex flex-col gap-2">
             <a href={`/api/models/${model.id}/stl?download=1`} className="btn-primary !py-3"><Download className="h-4 w-4" /> Download STL</a>
             <a href={`/api/models/${model.id}/3mf?download=1`} className="btn-ghost !py-3" title="3MF for Bambu Studio, PrusaSlicer, Cura"><Download className="h-4 w-4" /> Download 3MF</a>
+            <a href={`/api/models/${model.id}/obj?download=1`} className="btn-ghost !py-3" title="OBJ for Blender, Fusion, game engines and slicers"><Download className="h-4 w-4" /> Download OBJ</a>
             <a href={`/api/models/${model.id}/blender`} className="btn-ghost !py-3"><FileCode2 className="h-4 w-4" /> Blender script (.py)</a>
             <RemixButton modelId={model.id} />
             {isOwner && model.project && <Link href={`/studio/${model.project.id}`} className="btn-ghost !py-3"><Sparkles className="h-4 w-4" /> Continue in studio</Link>}
           </div>
 
+          {swapPlan && <TwoColourGuide plan={swapPlan} printerId={stats.setup?.printerId} />}
         </aside>
       </div>
     </div>

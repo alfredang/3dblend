@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Send, Download, FileCode2, Globe, Lock, Loader2, Coins, Sparkles, ChevronDown, Share2, AlertTriangle, CheckCircle2, Plus, X, FileText } from "lucide-react";
-import { ModelViewer } from "./ModelViewer";
+import { Send, Download, FileCode2, Globe, Lock, Loader2, Coins, Sparkles, ChevronDown, Share2, AlertTriangle, CheckCircle2, Plus, X, FileText, Palette } from "lucide-react";
+import { ModelStage } from "./ModelStage";
 import { Markdown } from "./Markdown";
 import { cn, colorFor } from "@/lib/utils";
 import { COST } from "@/lib/plans";
@@ -301,7 +301,7 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
           />
         ) : current ? (
           <>
-            <ModelViewer key={current.id} url={`/api/models/${current.id}/stl`} size={s.size} color={colorFor(current.id)} className="flex-1" />
+            <ModelStage key={current.id} url={`/api/models/${current.id}/stl`} size={s.size} color={colorFor(current.id)} title={current.title} layerHeight={s.recommendedLayerHeight} className="min-h-0 flex-1" />
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-4">
               <div className="pointer-events-auto">
                 <button onClick={() => setShowVersions((v) => !v)} className="glass inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm">
@@ -356,7 +356,9 @@ export function ChatStudio({ project, initialMessages, initialModels, initialCre
                 <div className="flex gap-2">
                   <a href={`/api/models/${current.id}/stl?download=1`} className="btn-primary !py-2 text-xs"><Download className="h-4 w-4" />STL</a>
                   <a href={`/api/models/${current.id}/3mf?download=1`} className="btn-ghost !py-2 text-xs" title="3MF for Bambu Studio, PrusaSlicer, Cura"><Download className="h-4 w-4" />3MF</a>
+                  <a href={`/api/models/${current.id}/obj?download=1`} className="btn-ghost !py-2 text-xs" title="OBJ for Blender, Fusion, game engines and slicers"><Download className="h-4 w-4" />OBJ</a>
                   <a href={`/api/models/${current.id}/blender`} className="btn-ghost !py-2 text-xs"><FileCode2 className="h-4 w-4" />Blender .py</a>
+                  <Link href={`/m/${current.id}#two-colour`} className="btn-ghost !py-2 text-xs" title="Pause-at-height guide for two colours without an AMS"><Palette className="h-4 w-4" />2-colour</Link>
                 </div>
               </div>
               {(s.printNotes || s.warnings?.length || s.errors?.length || s.tips?.length) && (
