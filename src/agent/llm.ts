@@ -11,6 +11,11 @@ export interface LLMClient {
   readonly model: string;
 }
 
+/** The reply hit max_tokens — usually the model looping on the same nodes. The harness retries with a nudge. */
+export class TruncatedOutputError extends Error {
+  constructor(readonly partial: string) { super("model output was truncated (token limit)"); this.name = "TruncatedOutputError"; }
+}
+
 export interface DeepSeekConfig { apiKey?: string; baseUrl?: string; model?: string; thinking?: boolean }
 
 /** DeepSeek exposes an OpenAI-compatible API; V4.1 Flash is the id "deepseek-flash". */
@@ -40,7 +45,7 @@ export function createDeepSeekClient(cfg: DeepSeekConfig | NodeJS.ProcessEnv = p
         ...({ thinking: { type: thinking } } as object),
       });
       const choice = res.choices[0];
-      if (choice?.finish_reason === "length") throw new Error("model output was truncated (token limit)");
+      if (choice?.finish_reason === "length") throw new TruncatedOutputError(choice.message?.content ?? "");
       return choice?.message?.content ?? "";
     },
   };

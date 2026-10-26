@@ -15,7 +15,7 @@ import { analysePrintability, type PrintReport, type PrinterProfile, DEFAULT_PRI
 import { toBinarySTL } from "./stl";
 import { toBlenderScript } from "./blender";
 import { SYSTEM_PROMPT, REPAIR_PROMPT, OPTIMIZE_PROMPT, BRIEF_PROMPT } from "./prompts";
-import type { ChatMessage, LLMClient } from "./llm";
+import { TruncatedOutputError, type ChatMessage, type LLMClient } from "./llm";
 
 export type HarnessEvent =
   | { type: "status"; text: string }
@@ -58,6 +58,14 @@ export function printScore(r: PrintReport): number {
   const m = r.metrics;
   return r.errors.length * 100 + r.warnings.length * 10 + m.overhangPct * 0.5 + m.bridgePct * 0.3 + m.thinAreaPct * 1.0 + Math.max(0, 15 - m.baseContactPct) * 0.5;
 }
+
+/** Real specs are ~2k tokens; a reply that needs more is almost always the model repeating itself. */
+const SPEC_MAX_TOKENS = 8000;
+
+const TRUNCATED_PROMPT =
+  'Your previous reply was cut off at the length limit because it kept repeating the same nodes. Start over and return a much shorter spec: ' +
+  'use "repeat"/"radial" for rows of identical features (ticks, ribs, holes), define shared shapes once in "parts" and place them with "ref", ' +
+  "never emit the same node twice, and keep the whole spec under 150 nodes.";
 
 export interface HarnessOptions {
   llm: LLMClient;
@@ -187,12 +195,25 @@ export async function runHarness(
 
   let lastMessage = "";
   let lastSpec: Spec | null = null;
+  let truncated: TruncatedOutputError | null = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     onEvent({ type: "attempt", n: attempt, max: maxAttempts });
     onEvent({ type: "status", text: attempt === 1 ? "Designing your model…" : `Repairing geometry (attempt ${attempt})…` });
 
-    const raw = await llm.complete(messages, { json: true });
+    let raw: string;
+    try {
+      raw = await llm.complete(messages, { json: true, maxTokens: SPEC_MAX_TOKENS });
+      truncated = null;
+    } catch (e) {
+      if (!(e instanceof TruncatedOutputError)) throw e;
+      truncated = e;
+      onEvent({ type: "status", text: "Reply ran too long — retrying with a more compact design…" });
+      // Keep turns alternating, but only send back the start of the runaway reply — the rest is the loop.
+      messages.push({ role: "assistant", content: `${e.partial.slice(0, 600)}… [cut off]` });
+      messages.push({ role: "user", content: TRUNCATED_PROMPT });
+      continue;
+    }
     onEvent({ type: "llm", chars: raw.length });
 
     let reply: LLMReply;
@@ -252,7 +273,7 @@ export async function runHarness(
       messages.push({ role: "user", content: OPTIMIZE_PROMPT(report.warnings, metrics) });
       attemptsUsed++;
       try {
-        const raw2 = await llm.complete(messages, { json: true });
+        const raw2 = await llm.complete(messages, { json: true, maxTokens: SPEC_MAX_TOKENS });
         const reply2 = parseReply(raw2);
         const v2 = reply2.spec ? validateSpec(reply2.spec) : null;
         if (v2 && v2.ok) {
@@ -304,6 +325,8 @@ export async function runHarness(
       /* fall through */
     }
   }
+  // Every attempt ran away and nothing usable came back: fail so the caller refunds the credit.
+  if (truncated) throw truncated;
   return {
     message: lastMessage || "I couldn't produce a valid model from that description. Could you describe the object, its rough size and its purpose?",
     spec: null,

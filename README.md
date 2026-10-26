@@ -80,7 +80,7 @@ Key files:
 | `src/agent/stl.ts` | Binary STL writer + parser |
 | `src/agent/threemf.ts` | 3MF (zip + XML) writer |
 | `src/agent/blender.ts` | Spec → self‑contained `bpy` script |
-| `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output) |
+| `src/agent/llm.ts` | DeepSeek client (OpenAI SDK, non‑thinking mode, JSON output; `TruncatedOutputError` on token‑cap hits) |
 | `src/agent/harness.ts` | The generate → validate → build → check → repair → optimise loop (text + image input) |
 | `src/lib/editor.ts` / `src/components/ShapeEditor.tsx` | Manual shape editor model and the 3D edit‑mode UI (TransformControls gizmos) |
 | `src/lib/security.ts` | Turnstile verification, honeypot, in‑memory rate limiter |
@@ -94,6 +94,8 @@ Key files:
 | `scripts/agent-cli.ts` | `npm run agent -- "a hex pencil cup"` → `out/*.stl`, `*.blender.py`, `*.spec.json` |
 
 > **Why non‑thinking mode?** DeepSeek V4.x in thinking mode spends its entire token budget reasoning about geometry and returns empty content for anything non‑trivial. The harness supplies the verification loop instead, and direct mode answers in ~3 s. Set `DEEPSEEK_THINKING=1` to opt back in.
+
+> **Runaway replies.** Flash occasionally loops, re‑emitting the same few nodes until it hits the output cap. Spec calls are capped at 8k tokens (real specs are ~2k); a cut‑off reply counts as one attempt and the harness retries with a "be compact — use `repeat`/`radial`/`parts`" nudge instead of failing the request. Only if every attempt runs away does the request fail (and the credit is refunded).
 
 ## Quick start (local)
 
