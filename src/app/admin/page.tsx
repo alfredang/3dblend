@@ -8,7 +8,7 @@ import { appUrl } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Prisma } from "@prisma/client";
 
-export const metadata = { title: "Admin" };
+export const metadata = { title: "Admin", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 const TABS = [

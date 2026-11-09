@@ -8,7 +8,7 @@ import { toCard } from "@/lib/models";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
 import { Download } from "lucide-react";
 
-export const metadata = { title: "Account" };
+export const metadata = { title: "Account", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {

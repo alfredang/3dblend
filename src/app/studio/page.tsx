@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NewProjectButton } from "@/components/NewProjectButton";
 
-export const metadata = { title: "Studio" };
+export const metadata = { title: "Studio", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ prompt?: string }> }) {

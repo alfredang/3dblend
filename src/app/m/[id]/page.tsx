@@ -21,7 +21,7 @@ type Stats = { brief?: string | null; assumptions?: string[] | null; size?: [num
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const m = await prisma.model.findUnique({ where: { id }, select: { title: true, description: true, isPublic: true } });
-  if (!m || !m.isPublic) return { title: "Model" };
+  if (!m || !m.isPublic) return { title: "Model", robots: { index: false, follow: false } };
   return { title: m.title, description: m.description, openGraph: { title: m.title, description: m.description } };
 }
 

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const p = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true } });
-  return { title: p?.title ?? "Studio" };
+  return { title: p?.title ?? "Studio", robots: { index: false, follow: false } };
 }
 
 export default async function ProjectPage({ params, searchParams }: { params: Promise<{ projectId: string }>; searchParams: Promise<{ prompt?: string }> }) {

@@ -14,6 +14,10 @@ RUN apk add --no-cache libc6-compat openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* is inlined at build time, so the public origin must be known here;
+# otherwise canonical/OG/share URLs bake in the localhost fallback.
+ARG NEXT_PUBLIC_APP_URL=https://3dblend.tertiaryinfotech.com
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 # Dummy values so `next build` can evaluate server modules; real ones come from the runtime env.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build" AUTH_SECRET="build-time-secret"
 RUN npx prisma generate && npm run build
