@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/utils";
 
-// Reads the DB, so it must not be frozen at build time.
-export const revalidate = 3600;
+// Reads the DB, so render per request: the Docker build has no database, and a
+// build-time prerender (even with `revalidate`) ships a stub without the models.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = appUrl().startsWith("http://localhost") ? "https://3dblend.tertiaryinfotech.com" : appUrl();
